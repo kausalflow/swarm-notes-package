@@ -1,6 +1,6 @@
 [project]
 name = "swarm-notes"
-version = "0.1.0"
+version = "0.1.1"
 description = "Automated research paper tracking and knowledge synthesis"
 readme = "README.md"
 authors = [
