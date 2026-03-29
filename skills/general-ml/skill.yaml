@@ -1,0 +1,20 @@
+name: GeneralMLSkill
+description: "General machine learning papers that do not fit a specialised category."
+extra_system_prompt: |
+  Extract the key contributions, methodology, evaluation benchmarks, 
+  and limitations of this paper.
+preferred_tags:
+  - benchmark
+  - dataset
+  - evaluation
+  - meta-learning
+arxiv_categories:
+  - cs.LG
+  - cs.AI
+  - stat.ML
+critic_context: |
+  Approve concepts only when they represent a reusable method, architectural pattern,
+  or evaluation idea that is likely to appear again across multiple ML papers.
+  Reject generic phrases such as training pipeline, benchmark setup, or model improvements.
+  Approve open questions only when they expose a real unresolved bottleneck in generalization,
+  optimization, evaluation, or reliability rather than a routine request for more data or compute.

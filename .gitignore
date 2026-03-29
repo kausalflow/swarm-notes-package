@@ -28,3 +28,5 @@ tmp_vault/
 htmlcov/
 
 vault_backups/*
+
+.mypy_cache
