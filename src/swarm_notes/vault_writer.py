@@ -437,7 +437,7 @@ def update_public_feed(analyses: list[PaperAnalysis]) -> None:
 
 
 def write_site_config() -> None:
-    """Write site identity metadata to ``website/src/content/site-config.json``.
+    """Write site identity metadata to ``settings.site_config_file``.
 
     The JSON file is read by the Astro website at build time to populate the
     hero section with the deployment-specific name, description, and tracked
@@ -455,8 +455,7 @@ def write_site_config() -> None:
     updated_at : str
         ISO-8601 UTC timestamp of the last pipeline run.
     """
-    repo_root = Path(__file__).parent.parent.parent.resolve()
-    out_path = repo_root / "website" / "src" / "content" / "site-config.json"
+    out_path = settings.site_config_file
     out_path.parent.mkdir(parents=True, exist_ok=True)
 
     payload = {

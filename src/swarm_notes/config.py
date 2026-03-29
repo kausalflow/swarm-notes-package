@@ -136,6 +136,9 @@ class Settings(BaseModel):
     # Data files
     taxonomy_file: Path = Field(default=REPO_ROOT / "vault" / "taxonomy.json")
     public_feed_file: Path = Field(default=REPO_ROOT / "public_feed.json")
+    site_config_file: Path = Field(
+        default=REPO_ROOT / "swarm-notes-ui" / "src" / "content" / "site-config.json"
+    )
     
     # LLM keys and model
     llm_api_key: str = Field(default_factory=lambda: os.environ.get("LLM_API_KEY", ""))
@@ -169,7 +172,7 @@ class Settings(BaseModel):
     # Experimental features
     enable_domain_expert: bool = False
 
-    # Site identity (written to website/src/content/site-config.json)
+    # Site identity (written to site_config_file)
     site_name: str = "Swarm Notes"
     site_description: str = "Automated research paper tracking and knowledge synthesis."
 
