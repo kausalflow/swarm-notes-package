@@ -116,6 +116,12 @@ def _process_paper_with_retries(paper, skill, src_config):
 
 @app.command()
 def run(
+    workspace: str = typer.Option(
+        ".",
+        "--workspace",
+        "-w",
+        help="Path to your notes workspace root (default: current directory)",
+    ),
     config: str = typer.Option("config.yaml", "--config", "-c", help="Path to config.yaml"),
     log_level: str = typer.Option(
         "INFO",
@@ -126,6 +132,9 @@ def run(
 ) -> None:
     """Run the full pipeline."""
     _configure_global_log_level(log_level)
+
+    import os
+    os.environ["SWARM_NOTES_ROOT"] = str(Path(workspace).resolve())
 
     from swarm_notes import config as src_config
     if Path(config).exists():

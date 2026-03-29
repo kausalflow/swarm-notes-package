@@ -314,9 +314,14 @@ def analyse(paper: RawPaper, skill: SkillSpec) -> PaperAnalysis:
 
 def _load_taxonomy() -> dict:
     """Load taxonomy.json, returning an empty dict on failure."""
+    if not settings.taxonomy_file.exists():
+        logger.debug("Taxonomy file not found at %s. Using empty taxonomy.", settings.taxonomy_file)
+        return {}
+        
     try:
         with settings.taxonomy_file.open() as fh:
             return json.load(fh)
     except Exception as exc:
-        logger.warning("Could not load taxonomy: %s", exc)
+        logger.warning("Could not load taxonomy from %s: %s", settings.taxonomy_file, exc)
         return {}
+

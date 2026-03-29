@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-REPO_ROOT = Path(os.environ.get("SWARM_NOTES_ROOT", Path.cwd())).resolve()
+WORKSPACE_ROOT = Path(os.environ.get("SWARM_NOTES_ROOT", Path.cwd())).resolve()
 
 _DEFAULT_PAPER_KEYWORDS = [
     "large language model",
@@ -116,28 +116,28 @@ class PaperSearchSettings(BaseModel):
 
 class Settings(BaseModel):
     # Vault paths
-    vault_dir: Path = Field(default=REPO_ROOT / "vault")
-    vault_papers_dir: Path = Field(default=REPO_ROOT / "vault" / "papers")
-    vault_concepts_dir: Path = Field(default=REPO_ROOT / "vault" / "concepts")
-    vault_datasets_dir: Path = Field(default=REPO_ROOT / "vault" / "datasets")
-    vault_discussions_dir: Path = Field(default=REPO_ROOT / "vault" / "discussions")
-    vault_daily_dir: Path = Field(default=REPO_ROOT / "vault" / "discussions" / "daily")
-    vault_open_questions_dir: Path = Field(default=REPO_ROOT / "vault" / "open-questions")
+    vault_dir: Path = Field(default=WORKSPACE_ROOT / "vault")
+    vault_papers_dir: Path = Field(default=WORKSPACE_ROOT / "vault" / "papers")
+    vault_concepts_dir: Path = Field(default=WORKSPACE_ROOT / "vault" / "concepts")
+    vault_datasets_dir: Path = Field(default=WORKSPACE_ROOT / "vault" / "datasets")
+    vault_discussions_dir: Path = Field(default=WORKSPACE_ROOT / "vault" / "discussions")
+    vault_daily_dir: Path = Field(default=WORKSPACE_ROOT / "vault" / "discussions" / "daily")
+    vault_open_questions_dir: Path = Field(default=WORKSPACE_ROOT / "vault" / "open-questions")
     
     # Staging paths
-    tmp_vault_dir: Path = Field(default=REPO_ROOT / "tmp_vault")
-    tmp_papers_dir: Path = Field(default=REPO_ROOT / "tmp_vault" / "papers")
-    tmp_concepts_dir: Path = Field(default=REPO_ROOT / "tmp_vault" / "concepts")
-    tmp_datasets_dir: Path = Field(default=REPO_ROOT / "tmp_vault" / "datasets")
-    tmp_discussions_dir: Path = Field(default=REPO_ROOT / "tmp_vault" / "discussions")
-    tmp_daily_dir: Path = Field(default=REPO_ROOT / "tmp_vault" / "discussions" / "daily")
-    tmp_open_questions_dir: Path = Field(default=REPO_ROOT / "tmp_vault" / "open-questions")
+    tmp_vault_dir: Path = Field(default=WORKSPACE_ROOT / "tmp_vault")
+    tmp_papers_dir: Path = Field(default=WORKSPACE_ROOT / "tmp_vault" / "papers")
+    tmp_concepts_dir: Path = Field(default=WORKSPACE_ROOT / "tmp_vault" / "concepts")
+    tmp_datasets_dir: Path = Field(default=WORKSPACE_ROOT / "tmp_vault" / "datasets")
+    tmp_discussions_dir: Path = Field(default=WORKSPACE_ROOT / "tmp_vault" / "discussions")
+    tmp_daily_dir: Path = Field(default=WORKSPACE_ROOT / "tmp_vault" / "discussions" / "daily")
+    tmp_open_questions_dir: Path = Field(default=WORKSPACE_ROOT / "tmp_vault" / "open-questions")
     
     # Data files
-    taxonomy_file: Path = Field(default=REPO_ROOT / "vault" / "taxonomy.json")
-    public_feed_file: Path = Field(default=REPO_ROOT / "public_feed.json")
+    taxonomy_file: Path = Field(default=WORKSPACE_ROOT / "vault" / "taxonomy.json")
+    public_feed_file: Path = Field(default=WORKSPACE_ROOT / "public_feed.json")
     site_config_file: Path = Field(
-        default=REPO_ROOT / "swarm-notes-ui" / "src" / "content" / "site-config.json"
+        default=WORKSPACE_ROOT / "swarm-notes-ui" / "src" / "content" / "site-config.json"
     )
     
     # LLM keys and model
@@ -165,7 +165,7 @@ class Settings(BaseModel):
         ),
     )
     skills_dir: Path = Field(
-        default=REPO_ROOT / "skills",
+        default=WORKSPACE_ROOT / "skills",
         description="Root directory that contains skill subfolders.",
     )
 
