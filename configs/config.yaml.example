@@ -1,0 +1,23 @@
+# Example swarm-notes configuration
+llm_model: "gemini-flash-lite-latest"
+paper_source: "arxiv"  # "arxiv" or "semantic_scholar"
+paper_keywords:
+  - "time series"
+  - "forecasting"
+paper_max_results_per_keyword: 5
+paper_total_cap: 20
+federation_feeds: []
+public_feed_max_items: 20
+
+# Site identity — shown in the website hero to identify this deployment
+site_name: "Swarm Notes"
+site_description: "Automated research paper tracking and knowledge synthesis."
+# Optional: where the UI site config JSON is written
+# site_config_file: "swarm-notes-ui/src/content/site-config.json"
+
+# Skill configuration
+# active_skills: ["time-series", "physics"]  # IDs of skill folders to load; empty = all
+# skills_dir: "skills"                       # Root directory for skills
+
+# Experimental domain expert agent (crawls HTML, consumes token quotas)
+enable_domain_expert: true
