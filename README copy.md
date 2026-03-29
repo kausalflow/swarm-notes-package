@@ -1,4 +1,4 @@
-# Swarm Notes Core Package
+# research-cruise 🚀
 
 An autonomous, serverless, multi-agent system that tracks academic papers, extracts structured data, and weaves them into a local, interconnected Markdown knowledge graph — a **Second Brain** for ML research.  
 Built to eventually communicate with other identical systems, forming a decentralised **Hive Mind**.
