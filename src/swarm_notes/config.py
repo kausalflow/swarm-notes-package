@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-REPO_ROOT = Path(__file__).parent.parent.parent.resolve()
+REPO_ROOT = Path(os.environ.get("SWARM_NOTES_ROOT", Path.cwd())).resolve()
 
 _DEFAULT_PAPER_KEYWORDS = [
     "large language model",
