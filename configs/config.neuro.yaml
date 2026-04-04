@@ -23,4 +23,11 @@ active_skills:
 # skills_dir: "skills"                       # Root directory for skills
 
 # Experimental domain expert agent (crawls HTML, consumes token quotas)
+# NOTE: biorxiv PDFs are Cloudflare-protected (since May 2025). Full-text
+# analysis requires AWS credentials in your .env file so that paperscraper
+# can retrieve PDFs via the biorxiv TDM/S3 API:
+#   AWS_ACCESS_KEY_ID=...
+#   AWS_SECRET_ACCESS_KEY=...
+# Create an IAM key with AmazonS3ReadOnlyAccess. Without it the domain-expert
+# step will silently skip full-text analysis for biorxiv papers.
 enable_domain_expert: true

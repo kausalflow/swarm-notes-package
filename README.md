@@ -94,6 +94,33 @@ python -m swarm_notes.main
 
 Use the example in configs folder to create your own version.
 
+#### bioRxiv / medRxiv: AWS credentials for full-text PDF download
+
+Since May 2025 **biorxiv.org is protected by Cloudflare**, which blocks direct PDF
+downloads. When `paper_source` is `biorxiv` or `medrxiv` and `enable_domain_expert`
+is `true`, the pipeline uses the
+[paperscraper](https://github.com/jannisborn/paperscraper) library to fall back to the
+**biorxiv TDM (Text & Data Mining) API**, which serves PDFs from an AWS S3 bucket.
+
+This requires an AWS IAM key with **read-only S3 access**:
+
+1. Log in to the [AWS IAM console](https://console.aws.amazon.com/iam/).
+2. Create a new user (or access key for an existing user).
+3. Attach the `AmazonS3ReadOnlyAccess` managed policy.
+4. Generate an **Access Key ID** and **Secret Access Key**.
+5. Add them to your `.env` file (see `.env.example`):
+
+```bash
+AWS_ACCESS_KEY_ID=AKIA...
+AWS_SECRET_ACCESS_KEY=...
+```
+
+Without these credentials the domain-expert full-text step will be silently skipped
+for biorxiv/medrxiv papers.
+
+For CI/CD, add `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` as repository secrets
+(same place as `LLM_API_KEY`).
+
 ## CI/CD Setup
 
 ### Add the required secret

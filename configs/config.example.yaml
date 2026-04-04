@@ -21,4 +21,10 @@ site_description: "Automated research paper tracking and knowledge synthesis."
 # skills_dir: "skills"                       # Root directory for skills
 
 # Experimental domain expert agent (crawls HTML, consumes token quotas)
+# NOTE: when paper_source is "biorxiv" or "medrxiv", full-text PDF download
+# requires AWS credentials because biorxiv is Cloudflare-protected (since
+# May 2025). Set in your .env file:
+#   AWS_ACCESS_KEY_ID=...          # IAM key with AmazonS3ReadOnlyAccess
+#   AWS_SECRET_ACCESS_KEY=...
+# Without these the domain-expert step is skipped for biorxiv/medrxiv papers.
 enable_domain_expert: true
