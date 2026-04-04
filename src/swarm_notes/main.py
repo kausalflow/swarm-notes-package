@@ -9,6 +9,18 @@ from pathlib import Path
 
 import typer
 
+def _version_callback(value: bool) -> None:
+    if value:
+        from importlib.metadata import PackageNotFoundError
+        from importlib.metadata import version as _version
+
+        try:
+            print(_version("swarm-notes"))
+        except PackageNotFoundError:
+            print("unknown (package not installed)")
+        raise typer.Exit()
+
+
 app = typer.Typer(help="Swarm Notes Orchestrator")
 
 # ---------------------------------------------------------------------------
@@ -69,7 +81,7 @@ def _process_single_paper(paper, skill, src_config):
     if src_config.settings.enable_domain_expert:
         from swarm_notes.domain_expert import extract_open_questions
 
-        analysis.open_questions = extract_open_questions(paper.arxiv_id, skill)
+        analysis.open_questions = extract_open_questions(paper.arxiv_id, skill, jatsxml_url=paper.jatsxml_url)
 
     analysis = review_analysis(analysis, paper, skill)
 
@@ -128,6 +140,15 @@ def run(
         "--log-level",
         "-l",
         help="Global logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL",
+    ),
+    version: bool = typer.Option(  # noqa: FBT001
+        False,
+        "--version",
+        "-v",
+        help="Print the installed package version and exit.",
+        callback=_version_callback,
+        is_eager=True,
+        expose_value=False,
     ),
 ) -> None:
     """Run the full pipeline."""

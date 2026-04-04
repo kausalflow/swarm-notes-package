@@ -191,6 +191,7 @@ def test_semantic_scholar_provider_parses_arxiv_backed_results() -> None:
             primary_category="",
             source="semantic_scholar",
             keywords_matched=["time series"],
+            jatsxml_url="",
         )
     ]
     mock_session.get.assert_called_once()
@@ -266,6 +267,7 @@ def test_fetch_papers_uses_selected_provider() -> None:
             url="https://arxiv.org/abs/1234.56789",
             primary_category="",
             keywords_matched=["forecasting"],
+            jatsxml_url="",
         )
     ]
 

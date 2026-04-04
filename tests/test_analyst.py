@@ -49,6 +49,7 @@ def test_analyse(mock_load_taxonomy: MagicMock, mock_agent_class: MagicMock) -> 
         published="2023-01-01",
         url="http://url",
         primary_category="cs.CL",
+        jatsxml_url="",
     )
 
     load_skills()

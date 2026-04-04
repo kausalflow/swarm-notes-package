@@ -25,12 +25,16 @@ _DEFAULT_PAPER_KEYWORDS = [
 ]
 
 
-def _default_paper_source() -> Literal["arxiv", "semantic_scholar", "openalex"]:
+def _default_paper_source() -> Literal["arxiv", "semantic_scholar", "openalex", "biorxiv", "medrxiv"]:
     source_name = os.environ.get("PAPER_SOURCE", "arxiv").strip().lower().replace("-", "_")
     if source_name == "semantic_scholar":
         return "semantic_scholar"
     if source_name == "openalex":
         return "openalex"
+    if source_name == "biorxiv":
+        return "biorxiv"
+    if source_name == "medrxiv":
+        return "medrxiv"
     return "arxiv"
 
 
@@ -103,7 +107,7 @@ class OpenAlexSearchSettings(BaseModel):
 
 
 class PaperSearchSettings(BaseModel):
-    source: Literal["arxiv", "semantic_scholar", "openalex"] = Field(
+    source: Literal["arxiv", "semantic_scholar", "openalex", "biorxiv", "medrxiv"] = Field(
         default_factory=_default_paper_source
     )
     keywords: list[str] = Field(default_factory=_default_paper_keywords)
@@ -190,7 +194,7 @@ class Settings(BaseModel):
         return self.paper_search.total_cap
 
     @property
-    def paper_source(self) -> Literal["arxiv", "semantic_scholar", "openalex"]:
+    def paper_source(self) -> Literal["arxiv", "semantic_scholar", "openalex", "biorxiv", "medrxiv"]:
         return self.paper_search.source
 
     @property

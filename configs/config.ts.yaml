@@ -1,7 +1,7 @@
 # Example research-cruise configuration
 llm_model: "gemini-flash-lite-latest"
 paper_search:
-  source: "openalex"  # "arxiv", "semantic_scholar", or "openalex"
+  source: "openalex"  # "arxiv", "semantic_scholar", "openalex", "biorxiv", or "medrxiv"
   keywords:
     - "time series"
     - "forecasting"

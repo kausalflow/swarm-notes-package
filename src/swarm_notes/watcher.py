@@ -5,6 +5,7 @@ This module re-exports the public watcher API to avoid breaking existing imports
 """
 
 from swarm_notes.paper_search import ArxivPaperProvider
+from swarm_notes.paper_search import BiorxivPaperProvider
 from swarm_notes.paper_search import OpenAlexPaperProvider
 from swarm_notes.paper_search import PaperProvider
 from swarm_notes.paper_search import RawPaper
@@ -35,6 +36,7 @@ def fetch_papers(
 
 __all__ = [
     "ArxivPaperProvider",
+    "BiorxivPaperProvider",
     "OpenAlexPaperProvider",
     "PaperProvider",
     "RawPaper",

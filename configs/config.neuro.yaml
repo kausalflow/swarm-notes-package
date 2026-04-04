@@ -1,9 +1,10 @@
 # Example swarm-notes configuration
 llm_model: "gemini-flash-lite-latest"
-paper_source: "arxiv"  # "arxiv", "semantic_scholar", "openalex", "biorxiv", or "medrxiv"
+paper_source: "biorxiv"  # "arxiv", "semantic_scholar", "openalex", "biorxiv", or "medrxiv"
 paper_keywords:
-  - "time series"
-  - "forecasting"
+  - "structural plasticity"
+  - "tdcs"
+  - "tms"
 paper_max_results_per_keyword: 5
 paper_total_cap: 20
 federation_feeds: []

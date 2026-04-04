@@ -19,6 +19,7 @@ def test_route_category() -> None:
         published="2023-01-01",
         url="http://url",
         primary_category="cs.CV",
+        jatsxml_url="",
     )
     # Since we removed VISION_SKILL, it should fall back to general-ml 
     # UNLESS computer-vision folder exists. Wait, I didn't create computer-vision.
@@ -38,6 +39,7 @@ def test_route_time_series() -> None:
         published="2023-01-01",
         url="http://url",
         primary_category="eess.SP",
+        jatsxml_url="",
     )
     skill = route(paper)
     assert skill.id == "time-series"
@@ -55,6 +57,7 @@ def test_route_fallback() -> None:
         published="2023-01-01",
         url="http://url",
         primary_category="math.GN",
+        jatsxml_url="",
     )
     skill = route(paper)
     assert skill.id == "general-ml"

@@ -23,6 +23,7 @@ def _build_paper() -> RawPaper:
         published="2026-03-27",
         url="https://arxiv.org/abs/2603.25708",
         primary_category="cs.LG",
+        jatsxml_url="",
     )
 
 
@@ -96,7 +97,7 @@ def test_process_single_paper_runs_domain_expert_then_critic() -> None:
 
     assert result is approved
     mock_analyse.assert_called_once_with(paper, skill)
-    mock_extract.assert_called_once_with(paper.arxiv_id, skill)
+    mock_extract.assert_called_once_with(paper.arxiv_id, skill, jatsxml_url=paper.jatsxml_url)
     assert analysis.open_questions == ["candidate-question"]
     mock_review.assert_called_once_with(analysis, paper, skill)
     mock_write.assert_called_once_with(approved, skill.name)

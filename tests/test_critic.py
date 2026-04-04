@@ -18,6 +18,7 @@ def _build_paper() -> RawPaper:
         published="2026-03-27",
         url="https://arxiv.org/abs/2603.25708",
         primary_category="cs.LG",
+        jatsxml_url="",
     )
 
 

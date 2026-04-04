@@ -10,6 +10,7 @@ from swarm_notes.paper_search.openalex import (
     match_keywords_openalex_result,
     reconstruct_openalex_abstract,
 )
+from swarm_notes.paper_search.biorxiv import BiorxivPaperProvider
 from swarm_notes.paper_search.semantic_scholar import SemanticScholarPaperProvider
 
 _PAPER_SOURCE_ALIASES = {
@@ -20,6 +21,12 @@ _PAPER_SOURCE_ALIASES = {
     "openalex": "openalex",
     "open_alex": "openalex",
     "open-alex": "openalex",
+    "biorxiv": "biorxiv",
+    "bio_rxiv": "biorxiv",
+    "bio-rxiv": "biorxiv",
+    "medrxiv": "medrxiv",
+    "med_rxiv": "medrxiv",
+    "med-rxiv": "medrxiv",
 }
 
 
@@ -59,6 +66,11 @@ def build_paper_provider(provider_name: str | None = None) -> PaperProvider:
             max_pages_per_window=settings.openalex_max_pages_per_window,
             max_history_days=settings.paper_max_history_days,
         )
+    if source_name in ("biorxiv", "medrxiv"):
+        return BiorxivPaperProvider(
+            max_history_days=settings.paper_max_history_days,
+            server=source_name,
+        )
     raise ValueError(f"Unsupported paper_source '{provider_name or settings.paper_source}'")
 
 
@@ -80,6 +92,7 @@ def query_semantic_scholar(keyword: str, max_results: int) -> list[RawPaper]:
 
 __all__ = [
     "ArxivPaperProvider",
+    "BiorxivPaperProvider",
     "OpenAlexPaperProvider",
     "PaperProvider",
     "RawPaper",
