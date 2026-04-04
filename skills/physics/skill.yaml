@@ -9,7 +9,7 @@ preferred_tags:
   - scientific-ml
   - fluid-dynamics
   - astrophysics
-arxiv_categories:
+paper_categories:
   - physics.comp-ph
   - physics.data-an
 critic_context: |

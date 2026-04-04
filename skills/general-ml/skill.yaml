@@ -8,7 +8,7 @@ preferred_tags:
   - dataset
   - evaluation
   - meta-learning
-arxiv_categories:
+paper_categories:
   - cs.LG
   - cs.AI
   - stat.ML

@@ -10,7 +10,7 @@ preferred_tags:
   - anomaly-detection
   - temporal
   - sequential
-arxiv_categories:
+paper_categories:
   - eess.SP
   - cs.LG
   - cs.AI

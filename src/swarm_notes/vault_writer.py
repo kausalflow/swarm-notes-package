@@ -544,8 +544,9 @@ def _load_feed() -> list[dict]:
 def _make_slug(source: str, paper_id: str, title: str) -> str:
     """Create a filename slug: ``<source>-<paper_id>-<title-slug>``."""
     source_slug = _slugify(source) or "unknown"
+    paper_id_slug = _slugify(paper_id) or "unknown"
     title_slug = _slugify(title)[:60].rstrip("-")
-    return f"{source_slug}-{paper_id}-{title_slug}"
+    return f"{source_slug}-{paper_id_slug}-{title_slug}"
 
 
 def _slugify(text: str) -> str:

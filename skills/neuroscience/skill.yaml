@@ -1,0 +1,60 @@
+name: NeuroscienceSkill
+description: "Papers in neuroscience, including computational neuroscience, neuroimaging, brain stimulation, and neural circuit modelling."
+extra_system_prompt: |
+  Extract the key contributions, experimental methodology, brain regions involved,
+  stimulation or recording techniques (e.g. TMS, tDCS, EEG, fMRI, patch clamp),
+  behavioural measures, computational models, and limitations of this paper.
+  Pay special attention to causal claims about neural circuits, plasticity mechanisms,
+  and links between neural activity and cognition or behaviour.
+preferred_tags:
+  - neuroscience
+  - neural
+  - brain
+  - cortex
+  - cortical
+  - plasticity
+  - synapse
+  - synaptic
+  - tms
+  - tdcs
+  - eeg
+  - fmri
+  - mri
+  - neuroimaging
+  - electrophysiology
+  - patch-clamp
+  - neuron
+  - circuit
+  - cognition
+  - cognitive
+  - memory
+  - learning
+  - hippocampus
+  - prefrontal
+  - dopamine
+  - serotonin
+  - motor
+  - sensory
+  - perception
+  - connectome
+  - spike
+  - oscillation
+  - network
+paper_categories:
+  # bioRxiv subject categories (primary_category values from the bioRxiv API)
+  - neuroscience
+  - animal behavior and cognition
+domain_expert_context: |
+  Focus on explicit open questions about neural mechanisms, unresolved debates in
+  circuit function, gaps in understanding plasticity rules, limitations of current
+  stimulation protocols, or outstanding questions about brain-behaviour relationships.
+  Reject generic future work such as "larger sample sizes" or "additional brain regions"
+  unless the authors identify a specific mechanistic bottleneck.
+critic_context: |
+  Approve concepts only when they represent a reusable neural mechanism, computational
+  principle, experimental paradigm, or theoretical framework likely to recur across
+  neuroscience papers (e.g. spike-timing-dependent plasticity, predictive coding,
+  neural manifold, inhibitory control, statistical learning).
+  Reject anatomy labels, drug names, or dataset names unless paired with a reusable conceptual idea.
+  Approve open questions only when they expose an unresolved mechanistic or causal question
+  about neural circuits, plasticity, or brain-behaviour relationships.

@@ -30,3 +30,5 @@ htmlcov/
 vault_backups/*
 
 .mypy_cache
+tmp_vault/*
+swarm-notes-ui/*

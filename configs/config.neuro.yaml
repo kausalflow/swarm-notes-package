@@ -18,7 +18,8 @@ site_description: "Automated research paper tracking and knowledge synthesis."
 # site_config_file: "swarm-notes-ui/src/content/site-config.json"
 
 # Skill configuration
-# active_skills: ["time-series", "physics"]  # IDs of skill folders to load; empty = all
+active_skills:
+  - "neuroscience"
 # skills_dir: "skills"                       # Root directory for skills
 
 # Experimental domain expert agent (crawls HTML, consumes token quotas)

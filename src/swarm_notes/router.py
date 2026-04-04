@@ -33,7 +33,7 @@ class SkillSpec(BaseModel):
     description: str
     extra_system_prompt: str
     preferred_tags: list[str] = Field(default_factory=list)
-    arxiv_categories: list[str] = Field(default_factory=list)
+    paper_categories: list[str] = Field(default_factory=list)
     
     # Per-agent overrides (optional)
     analyst_system_prompt_override: str | None = None
@@ -110,7 +110,7 @@ def route(paper: RawPaper) -> SkillSpec:
 
     # 1. Direct ArXiv category match (if skill defines it)
     for skill in _SKILL_REGISTRY:
-        if paper.primary_category in skill.arxiv_categories:
+        if paper.primary_category in skill.paper_categories:
             if _count_signals(combined_text, skill.preferred_tags) > 0:
                 logger.debug(
                     "Router: '%s' → %s (via category %s)",
