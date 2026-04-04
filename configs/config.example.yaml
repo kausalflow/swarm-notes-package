@@ -8,6 +8,7 @@ paper_max_results_per_keyword: 5
 paper_total_cap: 20
 federation_feeds: []
 public_feed_max_items: 20
+max_history_days: 3  # hard cutoff: do not keep results older than this many days
 
 # Site identity — shown in the website hero to identify this deployment
 site_name: "Swarm Notes"

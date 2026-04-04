@@ -1,5 +1,5 @@
 # Example swarm-notes configuration
-llm_model: "gemini-flash-lite-latest"
+llm_model: "google-gla:gemini-flash-lite-latest"
 paper_source: "biorxiv"  # "arxiv", "semantic_scholar", "openalex", "biorxiv", or "medrxiv"
 paper_keywords:
   - "structural plasticity"
@@ -9,6 +9,7 @@ paper_max_results_per_keyword: 5
 paper_total_cap: 20
 federation_feeds: []
 public_feed_max_items: 20
+max_history_days: 3  # hard cutoff: do not keep results older than this many days
 
 # Site identity — shown in the website hero to identify this deployment
 site_name: "Swarm Notes"

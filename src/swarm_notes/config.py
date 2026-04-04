@@ -270,6 +270,8 @@ class Settings(BaseModel):
             paper_search["total_cap"] = data["paper_total_cap"]
         if "max_history_days" not in paper_search and "paper_max_history_days" in data:
             paper_search["max_history_days"] = data["paper_max_history_days"]
+        if "max_history_days" not in paper_search and "max_history_days" in data:
+            paper_search["max_history_days"] = data["max_history_days"]
 
         if "keywords" not in paper_search and "arxiv_keywords" in data:
             paper_search["keywords"] = data["arxiv_keywords"]

@@ -1,6 +1,15 @@
 from __future__ import annotations
 
+import logging
+
 from swarm_notes.config import settings
+
+logger = logging.getLogger(__name__)
+
+# bioRxiv has no keyword search: the provider fetches all papers in the date
+# window and filters client-side.  Warn if the configured window is very large
+# since the API will likely time out.
+_BIORXIV_LARGE_WINDOW_WARNING_DAYS = 30
 from swarm_notes.paper_search.arxiv import ArxivPaperProvider, build_arxiv_search_query
 from swarm_notes.paper_search.base import PaperProvider, RawPaper
 from swarm_notes.paper_search.openalex import (
@@ -67,8 +76,18 @@ def build_paper_provider(provider_name: str | None = None) -> PaperProvider:
             max_history_days=settings.paper_max_history_days,
         )
     if source_name in ("biorxiv", "medrxiv"):
+        effective_days = settings.paper_max_history_days
+        if effective_days > _BIORXIV_LARGE_WINDOW_WARNING_DAYS:
+            logger.warning(
+                "BiorxivPaperProvider: max_history_days=%d is large — "
+                "bioRxiv has no keyword search so the full date window is fetched "
+                "before client-side filtering; consider setting max_history_days to %d "
+                "or fewer to avoid timeouts.",
+                effective_days,
+                _BIORXIV_LARGE_WINDOW_WARNING_DAYS,
+            )
         return BiorxivPaperProvider(
-            max_history_days=settings.paper_max_history_days,
+            max_history_days=effective_days,
             server=source_name,
         )
     raise ValueError(f"Unsupported paper_source '{provider_name or settings.paper_source}'")
