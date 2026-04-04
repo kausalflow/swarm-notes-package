@@ -11,23 +11,37 @@ from swarm_notes.router import SkillSpec
 
 logger = logging.getLogger(__name__)
 
-def extract_open_questions(arxiv_id: str, skill: SkillSpec | None = None, jatsxml_url: str = "") -> list[OpenQuestion]:
+def extract_open_questions(
+    arxiv_id: str,
+    skill: SkillSpec | None = None,
+    jatsxml_url: str = "",
+    pdf_url: str = "",
+) -> list[OpenQuestion]:
     """Scrape the full text of a paper and extract open questions using the LLM.
 
     For arXiv papers the HTML view at ``arxiv.org/html/{arxiv_id}`` is used.
     For bioRxiv/medRxiv papers, set *jatsxml_url* to the JATS XML URL from the
     API response — the full body text will be extracted from there instead.
 
+    When *jatsxml_url* is unavailable or returns no text, and *pdf_url* is set,
+    the PDF is downloaded and converted to Markdown as a fallback.
+
     If no full text is available (404, missing URL, parse failure), returns [].
     """
     if jatsxml_url:
         text_content = _fetch_jatsxml_text(jatsxml_url, arxiv_id)
+        if not text_content and pdf_url:
+            logger.info("DomainExpert: JATS XML empty for %s, falling back to PDF", arxiv_id)
+            text_content = _fetch_pdf_text(pdf_url, arxiv_id)
+    elif pdf_url:
+        text_content = _fetch_pdf_text(pdf_url, arxiv_id)
     else:
         text_content = _fetch_arxiv_html_text(arxiv_id)
 
     if not text_content:
         return []
 
+    _save_raw_markdown(arxiv_id, text_content)
     logger.info("DomainExpert: Analysing full text of %s (%d chars)", arxiv_id, len(text_content))
 
     system_prompt = (
@@ -76,6 +90,21 @@ def _fetch_arxiv_html_text(arxiv_id: str) -> str:
         return ""
 
 
+def _save_raw_markdown(paper_id: str, text: str) -> None:
+    """Persist *text* to vault/raw/papers/<sanitised-id>.md for later inspection."""
+    import re  # noqa: PLC0415
+
+    raw_dir = settings.vault_raw_papers_dir
+    try:
+        raw_dir.mkdir(parents=True, exist_ok=True)
+        safe_id = re.sub(r'[^\w.\-]', '_', paper_id)
+        dest = raw_dir / f"{safe_id}.md"
+        dest.write_text(text, encoding="utf-8")
+        logger.info("DomainExpert: saved raw markdown for %s to %s", paper_id, dest)
+    except Exception as exc:
+        logger.warning("DomainExpert: could not save raw markdown for %s: %s", paper_id, exc)
+
+
 def _fetch_jatsxml_text(jatsxml_url: str, paper_id: str) -> str:
     from swarm_notes.paper_search.biorxiv import fetch_jatsxml_text  # noqa: PLC0415
 
@@ -83,4 +112,27 @@ def _fetch_jatsxml_text(jatsxml_url: str, paper_id: str) -> str:
     text = fetch_jatsxml_text(jatsxml_url)
     if not text:
         logger.warning("DomainExpert: JATS XML empty or unavailable for %s", paper_id)
+    return text
+
+
+def _fetch_pdf_text(pdf_url: str, paper_id: str) -> str:
+    logger.info("DomainExpert: Fetching PDF for paper %s", paper_id)
+    # biorxiv/medrxiv papers have a DOI as their paper_id (e.g. "10.1101/…").
+    # Use paperscraper for DOI-identified papers: it handles Cloudflare
+    # protection and publisher-specific fallbacks automatically.
+    if paper_id and paper_id.startswith("10."):
+        from swarm_notes.pdf_converter import pdf_doi_to_markdown  # noqa: PLC0415
+
+        text = pdf_doi_to_markdown(paper_id)
+        if text:
+            return text
+        logger.warning(
+            "DomainExpert: DOI-based PDF download failed for %s, falling back to direct URL", paper_id
+        )
+
+    from swarm_notes.pdf_converter import pdf_url_to_markdown  # noqa: PLC0415
+
+    text = pdf_url_to_markdown(pdf_url)
+    if not text:
+        logger.warning("DomainExpert: PDF conversion empty or failed for %s", paper_id)
     return text

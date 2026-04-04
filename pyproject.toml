@@ -9,6 +9,8 @@ authors = [
 requires-python = ">=3.11"
 dependencies = [
     "beautifulsoup4>=4.14.3",
+    "markitdown[pdf]>=0.1.0",
+    "paperscraper>=0.3.6",
     "pydantic>=2.12.5",
     "pydantic-ai>=1.77.0",
     "python-dotenv>=1.2.2",

@@ -18,6 +18,7 @@ class RawPaper:
     source: str = "arxiv"
     keywords_matched: list[str] = field(default_factory=list)
     jatsxml_url: str = ""
+    pdf_url: str = ""
 
 
 class PaperProvider(Protocol):

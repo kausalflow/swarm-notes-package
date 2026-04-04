@@ -193,6 +193,7 @@ def _parse_biorxiv_item(item: Mapping[str, Any], server: str) -> RawPaper | None
     jatsxml_url = (item.get("jatsxml") or "").strip()
 
     url = f"https://www.biorxiv.org/content/{doi}"
+    pdf_url = f"https://www.biorxiv.org/content/{doi}.full.pdf"
 
     return RawPaper(
         arxiv_id=doi,
@@ -205,6 +206,7 @@ def _parse_biorxiv_item(item: Mapping[str, Any], server: str) -> RawPaper | None
         source=server,
         keywords_matched=[],
         jatsxml_url=jatsxml_url,
+        pdf_url=pdf_url,
     )
 
 

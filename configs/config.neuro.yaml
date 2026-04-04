@@ -23,4 +23,4 @@ active_skills:
 # skills_dir: "skills"                       # Root directory for skills
 
 # Experimental domain expert agent (crawls HTML, consumes token quotas)
-enable_domain_expert: false
+enable_domain_expert: true

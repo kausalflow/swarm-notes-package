@@ -81,7 +81,9 @@ def _process_single_paper(paper, skill, src_config):
     if src_config.settings.enable_domain_expert:
         from swarm_notes.domain_expert import extract_open_questions
 
-        analysis.open_questions = extract_open_questions(paper.arxiv_id, skill, jatsxml_url=paper.jatsxml_url)
+        analysis.open_questions = extract_open_questions(
+            paper.arxiv_id, skill, jatsxml_url=paper.jatsxml_url, pdf_url=paper.pdf_url
+        )
 
     analysis = review_analysis(analysis, paper, skill)
 

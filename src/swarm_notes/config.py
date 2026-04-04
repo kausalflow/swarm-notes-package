@@ -127,7 +127,8 @@ class Settings(BaseModel):
     vault_discussions_dir: Path = Field(default=WORKSPACE_ROOT / "vault" / "discussions")
     vault_daily_dir: Path = Field(default=WORKSPACE_ROOT / "vault" / "discussions" / "daily")
     vault_open_questions_dir: Path = Field(default=WORKSPACE_ROOT / "vault" / "open-questions")
-    
+    vault_raw_papers_dir: Path = Field(default=WORKSPACE_ROOT / "vault" / "raw" / "papers")
+
     # Staging paths
     tmp_vault_dir: Path = Field(default=WORKSPACE_ROOT / "tmp_vault")
     tmp_papers_dir: Path = Field(default=WORKSPACE_ROOT / "tmp_vault" / "papers")
@@ -139,7 +140,7 @@ class Settings(BaseModel):
     
     # Data files
     taxonomy_file: Path = Field(default=WORKSPACE_ROOT / "vault" / "taxonomy.json")
-    public_feed_file: Path = Field(default=WORKSPACE_ROOT / "public_feed.json")
+    public_feed_file: Path = Field(default=WORKSPACE_ROOT / "vault" / "public_feed.json")
     site_config_file: Path = Field(
         default=WORKSPACE_ROOT / "swarm-notes-ui" / "src" / "content" / "site-config.json"
     )
