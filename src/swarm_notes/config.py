@@ -114,6 +114,7 @@ class PaperSearchSettings(BaseModel):
     max_results_per_keyword: int = Field(default_factory=_default_paper_max_results_per_keyword)
     total_cap: int = Field(default_factory=_default_paper_total_cap)
     max_history_days: int = Field(default_factory=_default_paper_max_history_days)
+    biorxiv_categories: list[str] = Field(default_factory=list)
     arxiv: ArxivSearchSettings = Field(default_factory=ArxivSearchSettings)
     semantic_scholar: SemanticScholarSearchSettings = Field(default_factory=SemanticScholarSearchSettings)
     openalex: OpenAlexSearchSettings = Field(default_factory=OpenAlexSearchSettings)
@@ -273,6 +274,9 @@ class Settings(BaseModel):
             paper_search["max_history_days"] = data["paper_max_history_days"]
         if "max_history_days" not in paper_search and "max_history_days" in data:
             paper_search["max_history_days"] = data["max_history_days"]
+
+        if "biorxiv_categories" not in paper_search and "paper_biorxiv_categories" in data:
+            paper_search["biorxiv_categories"] = data["paper_biorxiv_categories"]
 
         if "keywords" not in paper_search and "arxiv_keywords" in data:
             paper_search["keywords"] = data["arxiv_keywords"]

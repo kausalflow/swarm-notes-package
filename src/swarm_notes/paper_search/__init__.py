@@ -86,9 +86,11 @@ def build_paper_provider(provider_name: str | None = None) -> PaperProvider:
                 effective_days,
                 _BIORXIV_LARGE_WINDOW_WARNING_DAYS,
             )
+        biorxiv_cats = settings.paper_search.biorxiv_categories
         return BiorxivPaperProvider(
             max_history_days=effective_days,
             server=source_name,
+            categories=biorxiv_cats or None,
         )
     raise ValueError(f"Unsupported paper_source '{provider_name or settings.paper_source}'")
 

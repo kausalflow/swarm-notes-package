@@ -37,10 +37,12 @@ class BiorxivPaperProvider:
         *,
         max_history_days: int = 30,
         server: str = "biorxiv",
+        categories: list[str] | None = None,
         session: requests.Session | None = None,
     ) -> None:
         self._max_history_days = max(1, max_history_days)
         self._server = server.lower().strip()
+        self._categories = [c.lower().strip() for c in categories] if categories else []
         self._session = session or requests.Session()
         self._last_request_at: float | None = None
 
@@ -86,6 +88,9 @@ class BiorxivPaperProvider:
 
                 paper = _parse_biorxiv_item(item, self._server)
                 if paper is None:
+                    continue
+
+                if self._categories and paper.primary_category.lower() not in self._categories:
                     continue
 
                 matched = _match_keywords(paper, lower_keywords)

@@ -7,6 +7,9 @@ paper_keywords:
   - "tms"
 paper_max_results_per_keyword: 5
 paper_total_cap: 20
+paper_biorxiv_categories:
+  - "neuroscience"
+  - "animal behavior and cognition"
 federation_feeds: []
 public_feed_max_items: 20
 max_history_days: 3  # hard cutoff: do not keep results older than this many days

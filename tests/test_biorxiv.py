@@ -131,3 +131,42 @@ def test_fetch_jatsxml_text_returns_empty_on_request_error() -> None:
         text = fetch_jatsxml_text("https://www.biorxiv.org/content/missing.source.xml")
 
     assert text == ""
+
+
+def test_biorxiv_provider_filters_by_category() -> None:
+    """Papers whose biorxiv category is not in the allowed list must be excluded."""
+    payload = {
+        "messages": [{"count": 2}],
+        "collection": [
+            _build_collection_item(
+                doi="10.1101/2026.01.01.neuro",
+                title="TMS modulation of motor cortex",
+                abstract="We applied TMS to the primary motor cortex.",
+            )
+            | {"category": "neuroscience"},
+            _build_collection_item(
+                doi="10.1101/2026.01.01.biophys",
+                title="Structural plasticity of peptides",
+                abstract="Their structural plasticity ranging from disordered to folded states.",
+            )
+            | {"category": "biophysics"},
+        ],
+    }
+
+    mock_session = MagicMock()
+    mock_response = MagicMock()
+    mock_response.raise_for_status.return_value = None
+    mock_response.json.return_value = payload
+    mock_session.get.return_value = mock_response
+
+    provider = BiorxivPaperProvider(
+        max_history_days=30,
+        server="biorxiv",
+        categories=["neuroscience"],
+        session=mock_session,
+    )
+
+    papers = provider.search_many(["tms", "structural plasticity"], max_results=5)
+
+    assert len(papers) == 1
+    assert papers[0].arxiv_id == "10.1101/2026.01.01.neuro"
