@@ -26,7 +26,7 @@ _ARXIV_API_BASE = "https://export.arxiv.org/api/query"
 _ARXIV_QUERY_TIMEOUT_SECONDS = 30
 _ARXIV_RETRY_DELAYS_SECONDS = (2.0, 5.0)
 _ARXIV_MIN_INTERVAL_SECONDS = 3.0
-_ARXIV_USER_AGENT = "swarm-notes/0.1 (+https://github.com/kausalflow/swarm-notes)"
+_ARXIV_USER_AGENT = "swarm-notes/0.1 (+https://github.com/kausalflow/swarm-notes; mailto:hi@kausalflow.com)"
 
 
 class ArxivPaperProvider:
