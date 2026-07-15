@@ -20,7 +20,7 @@ def test_init_vault() -> None:
     mock_mkdir = MagicMock()
     with patch("pathlib.Path.mkdir", mock_mkdir):
         vault_manager.init_vault()
-    assert mock_mkdir.call_count == 6
+    assert mock_mkdir.call_count == 7
 
 
 def test_init_staging() -> None:

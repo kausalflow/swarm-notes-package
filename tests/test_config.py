@@ -224,3 +224,28 @@ class TestPaperSourceConfig:
             assert loaded.paper_keywords == ["time series", "forecasting"]
             assert loaded.paper_max_results_per_keyword == 9
             assert loaded.paper_total_cap == 44
+
+    def test_yaml_can_set_daily_overview_and_archive_options(self):
+        with TemporaryDirectory() as temp_dir:
+            config_path = Path(temp_dir) / "config.yaml"
+            config_path.write_text(
+                (
+                    'daily_archive_cutoff_days: 30\n'
+                    'daily_overview_include_archived: true\n'
+                    'daily_overview_link_prefix: "/astro-notes"\n'
+                    f'vault_overview_file: "{temp_dir}/overview.md"\n'
+                ),
+                encoding="utf-8",
+            )
+
+            sys.modules.pop("swarm_notes.config", None)
+            with patch.dict("os.environ", {}, clear=True):
+                with patch("dotenv.load_dotenv"):
+                    import swarm_notes.config as cfg
+
+                loaded = cfg.Settings.load_from_yaml(config_path)
+
+            assert loaded.daily_archive_cutoff_days == 30
+            assert loaded.daily_overview_include_archived is True
+            assert loaded.daily_overview_link_prefix == "/astro-notes"
+            assert loaded.vault_overview_file == Path(temp_dir) / "overview.md"

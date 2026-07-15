@@ -24,6 +24,7 @@ def init_vault() -> None:
     settings.vault_datasets_dir.mkdir(parents=True, exist_ok=True)
     settings.vault_discussions_dir.mkdir(parents=True, exist_ok=True)
     settings.vault_daily_dir.mkdir(parents=True, exist_ok=True)
+    settings.vault_daily_archive_dir.mkdir(parents=True, exist_ok=True)
     settings.vault_open_questions_dir.mkdir(parents=True, exist_ok=True)
     logger.info("Vault structure initialised at %s", settings.vault_dir)
 
