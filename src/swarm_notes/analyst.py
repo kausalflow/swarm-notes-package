@@ -15,7 +15,7 @@ from pydantic_ai import Agent
 
 from swarm_notes.config import settings
 from swarm_notes.router import SkillSpec
-from swarm_notes.vault_manager import get_existing_concept_slugs
+from swarm_notes.vault_manager import get_existing_tags
 from swarm_notes.watcher import RawPaper
 
 logger = logging.getLogger(__name__)
@@ -124,8 +124,14 @@ class RejectedCandidate(BaseModel):
     )
 
 
-class PaperAnalysis(BaseModel):
-    """Structured extraction output for a single academic paper."""
+class DatasetLink(BaseModel):
+    """A dataset mentioned in the paper."""
+    name: str = Field(description="Name of the dataset (e.g. 'european-space-agency-anomaly-dataset').")
+    description: str = Field(description="Description of the dataset and how it is used in the paper.")
+
+
+class PaperAnalysisBase(BaseModel):
+    """Structured extraction output for a single academic paper (Base schema)."""
 
     title: str = Field(description="Clean, full title of the paper.")
     authors: list[str] = Field(description="List of author full names.")
@@ -148,13 +154,6 @@ class PaperAnalysis(BaseModel):
         description="Bullet-point list of 3-5 key contributions."
     )
 
-    tags: list[str] = Field(
-        description=(
-            "Relevant tags from the provided taxonomy. "
-            "Choose only tags that genuinely apply. Maximum 10 tags."
-        )
-    )
-
     architectures: list[str] = Field(
         default_factory=list,
         description=(
@@ -163,7 +162,7 @@ class PaperAnalysis(BaseModel):
         ),
     )
 
-    datasets: list[str] = Field(
+    datasets: list[DatasetLink] = Field(
         default_factory=list,
         description=(
             "Names of CRITICAL datasets used for evaluation or training "
@@ -209,35 +208,32 @@ class PaperAnalysis(BaseModel):
     )
 
 
+class PaperAnalysis(PaperAnalysisBase):
+    """Structured extraction output for a single academic paper."""
+    tags: list[str] = Field(default_factory=list, description="All assigned tags.")
+
+
 # ---------------------------------------------------------------------------
 # Agent factory
 # ---------------------------------------------------------------------------
 
 def _build_system_prompt(skill: SkillSpec, taxonomy: dict) -> str:
-    tags_list = ", ".join(taxonomy.get("tags", []))
     architectures_list = ", ".join(taxonomy.get("architectures", []))
     domains_list = ", ".join(taxonomy.get("domains", []))
     
-    existing_concepts_list = get_existing_concept_slugs()
-    existing_concepts_str = ", ".join(existing_concepts_list) if existing_concepts_list else "(No concepts currently exist in the vault)"
-
     base_prompt = f"""You are an expert academic paper analyst specialising in machine learning research.
 
 Your task is to analyse the provided paper abstract and extract structured information.
 
-TAXONOMY (use ONLY these values for tags/architectures/domains):
-- Available tags: {tags_list}
+TAXONOMY (use ONLY these values for architectures/domains):
 - Available architectures: {architectures_list}
 - Available domains: {domains_list}
-
-EXISTING CONCEPTS IN VAULT:
-{existing_concepts_str}
 
 SKILL CONTEXT ({skill.name}):
 {skill.extra_system_prompt}
 
 IMPORTANT RULES:
-1. Select tags ONLY from the taxonomy tag list above.
+1. Select tags according to the dynamic schema.
 2. Select domain ONLY from the taxonomy domains list above.
 3. Select architectures ONLY from the taxonomy architectures list above (or leave empty).
 4. The summary must be 3-5 sentences, technically precise but accessible.
@@ -246,11 +242,10 @@ IMPORTANT RULES:
 7. Default to zero concepts unless a concept is central to the paper's novelty and likely to matter beyond this single paper.
 8. For each proposed concept, fill importance_reason, reusability_reason, and evidence_excerpt with concrete, specific justification from the title or abstract.
 9. Reject generic terminology, routine datasets, benchmark names, and umbrella phrases unless the paper makes them a distinct reusable idea.
-10. For concepts, ALWAYS check the EXISTING CONCEPTS IN VAULT list. If a highly synonymous concept already exists, you MUST exactly reuse its slug. Only create entirely new concepts if they represent a genuinely novel idea.
-11. Prefer 0-2 excellent concept candidates over 5 weak ones.
-12. Datasets are also candidate proposals for archival notes. Include only critical, named datasets that are central to evaluation claims.
-13. Reject generic or aggregate dataset labels like "real-world datasets", "benchmark datasets", "10 datasets", or unnamed proprietary buckets.
-14. Prefer 0-2 datasets. If uncertain a dataset is important enough for a standalone note, omit it.
+10. Prefer 0-2 excellent concept candidates over 5 weak ones.
+11. Datasets are also candidate proposals for archival notes. Include only critical, named datasets that are central to evaluation claims.
+12. Reject generic or aggregate dataset labels like "real-world datasets", "benchmark datasets", "10 datasets", or unnamed proprietary buckets.
+13. Prefer 0-2 datasets. If uncertain a dataset is important enough for a standalone note, omit it.
 """
     if skill.analyst_system_prompt_override:
         return skill.analyst_system_prompt_override
@@ -274,10 +269,45 @@ def analyse(paper: RawPaper, skill: SkillSpec) -> PaperAnalysis:
     """
     taxonomy = _load_taxonomy()
     system_prompt = _build_system_prompt(skill, taxonomy)
+    existing_tags = get_existing_tags()
+    
+    from pydantic import create_model
 
-    agent: Agent[None, PaperAnalysis] = Agent(
+    fields = {}
+    if existing_tags:
+        ExistingTags = Literal[tuple(existing_tags)]  # type: ignore
+        fields["existing_tags"] = (
+            list[ExistingTags],
+            Field(
+                default_factory=list,
+                description="Tags chosen from the existing knowledge base. Pick only tags that genuinely apply."
+            )
+        )
+        fields["new_tags"] = (
+            list[str],
+            Field(
+                default_factory=list,
+                description="Use this ONLY if the concept cannot be accurately described by any of the existing_tags. Keep new tags to an absolute minimum."
+            )
+        )
+    else:
+        fields["new_tags"] = (
+            list[str],
+            Field(
+                default_factory=list,
+                description="List of new tags for this paper."
+            )
+        )
+        
+    DynamicPaperAnalysis = create_model(
+        "DynamicPaperAnalysis",
+        __base__=PaperAnalysisBase,
+        **fields
+    )
+
+    agent: Agent[None, DynamicPaperAnalysis] = Agent(
         model=settings.llm_model,
-        output_type=PaperAnalysis,
+        output_type=DynamicPaperAnalysis,
         system_prompt=system_prompt,
     )
 
@@ -293,7 +323,17 @@ def analyse(paper: RawPaper, skill: SkillSpec) -> PaperAnalysis:
     logger.info("Analyst: analysing paper %s with skill %s", paper.arxiv_id, skill.name)
 
     result = agent.run_sync(user_message)
-    analysis: PaperAnalysis = result.output
+    dynamic_analysis = result.output
+    
+    # Merge existing and new tags
+    combined_tags = []
+    if hasattr(dynamic_analysis, "existing_tags"):
+        combined_tags.extend(getattr(dynamic_analysis, "existing_tags", []))
+    if hasattr(dynamic_analysis, "new_tags"):
+        combined_tags.extend(getattr(dynamic_analysis, "new_tags", []))
+        
+    analysis_dict = dynamic_analysis.model_dump(exclude={"existing_tags", "new_tags"})
+    analysis = PaperAnalysis(**analysis_dict, tags=combined_tags)
 
     # Ensure metadata from the raw paper is preserved accurately
     analysis.arxiv_id = paper.arxiv_id

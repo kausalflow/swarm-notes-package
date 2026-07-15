@@ -12,6 +12,8 @@ import logging
 import shutil
 from pathlib import Path
 
+import frontmatter
+
 from swarm_notes.config import settings
 
 logger = logging.getLogger(__name__)
@@ -86,11 +88,42 @@ def _merge_directory(src: Path, dst: Path) -> None:
             logger.debug("Staged %s → %s", src_file, dst_file)
 
 
-def get_existing_concept_slugs() -> list[str]:
-    """Return a list of all concept slugs currently in the live vault."""
-    if not settings.vault_concepts_dir.exists():
+def get_existing_tags() -> list[str]:
+    """Return a deduplicated list of all tags currently found in live vault papers."""
+    if not settings.vault_papers_dir.exists():
         return []
-    return [f.stem for f in settings.vault_concepts_dir.glob("*.md")]
+    tags_set = set()
+    for f in settings.vault_papers_dir.glob("*.md"):
+        try:
+            post = frontmatter.load(f)
+            file_tags = post.metadata.get("tags", [])
+            if isinstance(file_tags, list):
+                for t in file_tags:
+                    if isinstance(t, str) and t.strip():
+                        tags_set.add(t.strip())
+            elif isinstance(file_tags, str) and file_tags.strip():
+                tags_set.add(file_tags.strip())
+        except Exception as exc:
+            logger.warning("VaultManager: failed to parse tags from %s: %s", f, exc)
+    return sorted(list(tags_set))
+
+
+def get_existing_entities(entity_type: str) -> list[str]:
+    """Return a deduplicated list of entity names (e.g. concepts, datasets, open_questions) from live vault papers."""
+    if not settings.vault_papers_dir.exists():
+        return []
+    entity_set = set()
+    for f in settings.vault_papers_dir.glob("*.md"):
+        try:
+            post = frontmatter.load(f)
+            entities = post.metadata.get(entity_type, [])
+            if isinstance(entities, list):
+                for e in entities:
+                    if isinstance(e, dict) and "name" in e:
+                        entity_set.add(e["name"])
+        except Exception as exc:
+            pass
+    return sorted(list(entity_set))
 
 
 def make_storage_id(source: str, paper_id: str) -> str:

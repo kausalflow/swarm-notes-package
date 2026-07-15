@@ -7,13 +7,18 @@ from swarm_notes.router import load_skills, get_general_skill
 from swarm_notes.watcher import RawPaper
 
 
-class MockOutput:
+from pydantic import BaseModel
+
+class MockOutput(BaseModel):
     """Mock structure for PaperAnalysis output."""
     arxiv_id: str = ""
     url: str = ""
     published: str = ""
+    title: str = "Test Title"
+    summary: str = "Test summary"
+    key_contributions: list[str] = []
+    domain: str = "nlp"
     authors: list[str] = []
-    tags: list[str] = []
     concepts: list[str] = []
 
 

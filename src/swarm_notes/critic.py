@@ -9,10 +9,10 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
-from swarm_notes.analyst import ConceptLink, OpenQuestion, PaperAnalysis, RejectedCandidate
+from swarm_notes.analyst import ConceptLink, DatasetLink, OpenQuestion, PaperAnalysis, RejectedCandidate
 from swarm_notes.config import settings
 from swarm_notes.router import SkillSpec
-from swarm_notes.vault_manager import get_existing_concept_slugs
+from swarm_notes.vault_manager import get_existing_entities
 from swarm_notes.watcher import RawPaper
 
 logger = logging.getLogger(__name__)
@@ -44,7 +44,7 @@ class CriticReview(BaseModel):
             "Return an empty list if none qualify."
         ),
     )
-    approved_datasets: list[str] = Field(
+    approved_datasets: list[DatasetLink] = Field(
         default_factory=list,
         description=(
             "Only critical named datasets that deserve standalone notes. "
@@ -62,11 +62,11 @@ class CriticReview(BaseModel):
 
 
 def _build_system_prompt(skill: SkillSpec) -> str:
-    existing_concepts = get_existing_concept_slugs()
+    existing_concepts = get_existing_entities("concepts")
     existing_concepts_str = ", ".join(existing_concepts) if existing_concepts else "(No concepts currently exist in the vault)"
-    existing_open_questions = _get_existing_slugs(settings.vault_open_questions_dir)
+    existing_open_questions = get_existing_entities("open_questions")
     existing_open_questions_str = ", ".join(existing_open_questions) if existing_open_questions else "(No open questions currently exist in the vault)"
-    existing_datasets = _get_existing_slugs(settings.vault_datasets_dir)
+    existing_datasets = get_existing_entities("datasets")
     existing_datasets_str = ", ".join(existing_datasets) if existing_datasets else "(No datasets currently exist in the vault)"
 
     prompt = f"""You are a highly selective research archivist protecting a long-lived ML knowledge vault.
@@ -167,9 +167,3 @@ def review_analysis(analysis: PaperAnalysis, paper: RawPaper, skill: SkillSpec) 
 
     return analysis
 
-
-def _get_existing_slugs(directory: Path) -> list[str]:
-    """Return existing note slugs from a vault directory."""
-    if not directory.exists():
-        return []
-    return sorted(path.stem for path in directory.glob("*.md"))
