@@ -573,6 +573,7 @@ def _archive_old_daily_notes(cutoff_days: int) -> int:
                 note_path,
             )
             continue
+        note_path.rename(archive_target)
         archived += 1
 
     if archived:
@@ -609,19 +610,25 @@ def _parse_daily_filename(path: Path):
 
 
 def _extract_summary_snippet(path: Path) -> str:
-    text = path.read_text(encoding="utf-8")
-    if text.startswith("---"):
-        parts = text.split("---", 2)
-        if len(parts) == 3:
-            text = parts[2]
-
-    for raw_line in text.splitlines():
-        line = raw_line.strip()
-        if not line or line.startswith("#"):
-            continue
-        normalized = re.sub(r"\s+", " ", line).strip()
-        if normalized:
-            return normalized[:120]
+    in_frontmatter = False
+    past_frontmatter = False
+    with path.open(encoding="utf-8") as fh:
+        for raw_line in fh:
+            line = raw_line.rstrip("\n")
+            stripped = line.strip()
+            if not past_frontmatter and not in_frontmatter and stripped == "---":
+                in_frontmatter = True
+                continue
+            if in_frontmatter:
+                if stripped == "---":
+                    in_frontmatter = False
+                    past_frontmatter = True
+                continue
+            if not stripped or stripped.startswith("#"):
+                continue
+            normalized = re.sub(r"\s+", " ", stripped).strip()
+            if normalized:
+                return normalized[:120]
     return "No summary available."
 
 
