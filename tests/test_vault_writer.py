@@ -1,10 +1,19 @@
 """Tests for vault_writer review rendering."""
 
+from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 from swarm_notes.analyst import ConceptLink, OpenQuestion, PaperAnalysis, RejectedCandidate
 from swarm_notes.config import settings
-from swarm_notes.vault_writer import _build_body, _build_frontmatter, _write_concept_stub, _write_dataset_stub, write_paper
+from swarm_notes.vault_writer import (
+    _build_body,
+    _build_frontmatter,
+    _write_concept_stub,
+    _write_dataset_stub,
+    compact_daily_notes,
+    generate_daily_overview,
+    write_paper,
+)
 import frontmatter
 
 
@@ -252,3 +261,76 @@ def test_write_paper_creates_dataset_stubs(tmp_path, monkeypatch) -> None:
 
     write_paper(analysis, "TimeSeriesSkill")
     assert (tmp_datasets / "etth1.md").exists()
+
+
+def test_generate_daily_overview_groups_by_month_and_week(tmp_path, monkeypatch) -> None:
+    discussions_dir = tmp_path / "discussions"
+    daily_dir = discussions_dir / "daily"
+    archive_dir = discussions_dir / "archive" / "daily"
+    overview_path = discussions_dir / "_overview.md"
+    daily_dir.mkdir(parents=True)
+    archive_dir.mkdir(parents=True)
+
+    monkeypatch.setattr(settings, "vault_discussions_dir", discussions_dir)
+    monkeypatch.setattr(settings, "vault_daily_dir", daily_dir)
+    monkeypatch.setattr(settings, "vault_daily_archive_dir", archive_dir)
+    monkeypatch.setattr(settings, "vault_overview_file", overview_path)
+    monkeypatch.setattr(settings, "daily_overview_link_prefix", "/astro-notes")
+
+    (daily_dir / "2026-07-08.md").write_text("# Daily Notes\n\nWeek 28 highlight\n", encoding="utf-8")
+    (daily_dir / "2026-07-06.md").write_text("# Daily Notes\n\nWeek 27 highlight\n", encoding="utf-8")
+    (daily_dir / "2026-06-30.md").write_text("# Daily Notes\n\nJune recap highlight\n", encoding="utf-8")
+
+    note_count = generate_daily_overview(include_archived=False)
+    assert note_count == 3
+
+    content = overview_path.read_text(encoding="utf-8")
+    assert "## 2026-07" in content
+    assert "### Week 2026-W28" in content
+    assert "### Week 2026-W27" in content
+    assert "- [2026-07-08](/astro-notes/daily/2026-07-08)" in content
+    assert "## 2026-06" in content
+    assert "- [2026-06-30](/astro-notes/daily/2026-06-30)" in content
+
+    before = content
+    generate_daily_overview(include_archived=False)
+    assert overview_path.read_text(encoding="utf-8") == before
+
+
+def test_compact_daily_notes_archives_old_and_excludes_from_default_overview(tmp_path, monkeypatch) -> None:
+    discussions_dir = tmp_path / "discussions"
+    daily_dir = discussions_dir / "daily"
+    archive_dir = discussions_dir / "archive" / "daily"
+    overview_path = discussions_dir / "_overview.md"
+    daily_dir.mkdir(parents=True)
+    archive_dir.mkdir(parents=True)
+
+    monkeypatch.setattr(settings, "vault_discussions_dir", discussions_dir)
+    monkeypatch.setattr(settings, "vault_daily_dir", daily_dir)
+    monkeypatch.setattr(settings, "vault_daily_archive_dir", archive_dir)
+    monkeypatch.setattr(settings, "vault_overview_file", overview_path)
+    monkeypatch.setattr(settings, "daily_overview_link_prefix", "/astro-notes")
+    monkeypatch.setattr(settings, "daily_archive_cutoff_days", 30)
+    monkeypatch.setattr(settings, "daily_overview_include_archived", False)
+
+    old_date = (datetime.now(tz=timezone.utc).date() - timedelta(days=45)).isoformat()
+    recent_date = (datetime.now(tz=timezone.utc).date() - timedelta(days=5)).isoformat()
+    (daily_dir / f"{old_date}.md").write_text("# Old\n\nOld content\n", encoding="utf-8")
+    (daily_dir / f"{recent_date}.md").write_text("# Recent\n\nRecent content\n", encoding="utf-8")
+
+    result = compact_daily_notes()
+    assert result["archived_count"] == 1
+    assert result["overview_note_count"] == 1
+
+    archived_path = archive_dir / old_date[0:4] / old_date[5:7] / f"{old_date}.md"
+    assert archived_path.exists()
+    assert not (daily_dir / f"{old_date}.md").exists()
+
+    content = overview_path.read_text(encoding="utf-8")
+    assert f"- [{recent_date}](/astro-notes/daily/{recent_date})" in content
+    assert old_date not in content
+
+    count_with_archive = generate_daily_overview(include_archived=True)
+    assert count_with_archive == 2
+    content_with_archive = overview_path.read_text(encoding="utf-8")
+    assert f"- [{old_date}](/astro-notes/archive/daily/{old_date[0:4]}/{old_date[5:7]}/{old_date}) *(archived)*" in content_with_archive

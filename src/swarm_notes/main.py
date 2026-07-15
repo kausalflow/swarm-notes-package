@@ -143,6 +143,21 @@ def run(
         "-l",
         help="Global logging level: DEBUG, INFO, WARNING, ERROR, CRITICAL",
     ),
+    archive_dailies_older_than: int | None = typer.Option(
+        None,
+        "--archive-dailies-older-than",
+        help="Archive daily discussion notes older than N days (0 disables archiving).",
+    ),
+    include_archived_in_overview: bool | None = typer.Option(
+        None,
+        "--include-archived-in-overview/--exclude-archived-in-overview",
+        help="Override whether archived daily notes are included in the rolling overview markdown file.",
+    ),
+    overview_file: str | None = typer.Option(
+        None,
+        "--overview-file",
+        help="Path to the rolling daily overview markdown file.",
+    ),
     version: bool = typer.Option(  # noqa: FBT001
         False,
         "--version",
@@ -164,6 +179,15 @@ def run(
         src_config.load_yaml_config(config)
     else:
         logger.info("No config.yaml found at '%s', using environment variables / defaults.", config)
+    if archive_dailies_older_than is not None:
+        src_config.settings.daily_archive_cutoff_days = max(0, archive_dailies_older_than)
+    if include_archived_in_overview is not None:
+        src_config.settings.daily_overview_include_archived = include_archived_in_overview
+    if overview_file:
+        overview_path = Path(overview_file)
+        if not overview_path.is_absolute():
+            overview_path = Path(workspace).resolve() / overview_path
+        src_config.settings.vault_overview_file = overview_path.resolve()
 
     from swarm_notes import federation, router, watcher
     from swarm_notes.vault_manager import (
@@ -174,7 +198,7 @@ def run(
         init_vault,
         make_storage_id,
     )
-    from swarm_notes.vault_writer import update_public_feed, write_site_config
+    from swarm_notes.vault_writer import compact_daily_notes, update_public_feed, write_site_config
 
     # Load skills from disk based on config
     router.load_skills()
@@ -208,6 +232,7 @@ def run(
             logger.warning("Watcher returned no papers – nothing to process")
             # Still a valid (empty) run; commit any federation changes
             commit_staging()
+            compact_daily_notes()
             raise typer.Exit(0)
 
         # ------------------------------------------------------------------
@@ -230,6 +255,7 @@ def run(
         if not papers:
             logger.info("All fetched papers already exist in the vault – nothing to do")
             commit_staging()
+            compact_daily_notes()
             raise typer.Exit(0)
 
         # ------------------------------------------------------------------
@@ -289,6 +315,12 @@ def run(
         # ------------------------------------------------------------------
         logger.info("--- Step 8: Committing staging to vault ---")
         commit_staging()
+        compaction_result = compact_daily_notes()
+        logger.info(
+            "--- Step 9: Daily compaction complete (%d archived, %d overview notes) ---",
+            compaction_result["archived_count"],
+            compaction_result["overview_note_count"],
+        )
 
         logger.info(
             "=== Pipeline complete: %d/%d papers processed successfully ===",

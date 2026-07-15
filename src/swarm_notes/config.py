@@ -127,6 +127,8 @@ class Settings(BaseModel):
     vault_datasets_dir: Path = Field(default=WORKSPACE_ROOT / "vault" / "datasets")
     vault_discussions_dir: Path = Field(default=WORKSPACE_ROOT / "vault" / "discussions")
     vault_daily_dir: Path = Field(default=WORKSPACE_ROOT / "vault" / "discussions" / "daily")
+    vault_daily_archive_dir: Path = Field(default=WORKSPACE_ROOT / "vault" / "discussions" / "archive" / "daily")
+    vault_overview_file: Path = Field(default=WORKSPACE_ROOT / "vault" / "discussions" / "_overview.md")
     vault_open_questions_dir: Path = Field(default=WORKSPACE_ROOT / "vault" / "open-questions")
     vault_raw_papers_dir: Path = Field(default=WORKSPACE_ROOT / "vault" / "raw" / "papers")
 
@@ -181,6 +183,9 @@ class Settings(BaseModel):
     # Site identity (written to site_config_file)
     site_name: str = "Swarm Notes"
     site_description: str = "Automated research paper tracking and knowledge synthesis."
+    daily_archive_cutoff_days: int = 0
+    daily_overview_include_archived: bool = False
+    daily_overview_link_prefix: str = "/discussions"
 
     # Backward-compatible aliases for pre-refactor names.
     @property

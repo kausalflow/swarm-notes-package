@@ -16,6 +16,13 @@ site_description: "Automated research paper tracking and knowledge synthesis."
 # Optional: where the UI site config JSON is written
 # site_config_file: "swarm-notes-ui/src/content/site-config.json"
 
+# Daily compaction for Astro/static sites
+daily_archive_cutoff_days: 30
+daily_overview_include_archived: false
+daily_overview_link_prefix: "/discussions"
+# Optional: single rolling overview artifact path
+# vault_overview_file: "vault/discussions/_overview.md"
+
 # Skill configuration
 # active_skills: ["time-series", "physics"]  # IDs of skill folders to load; empty = all
 # skills_dir: "skills"                       # Root directory for skills

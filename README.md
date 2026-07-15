@@ -193,6 +193,29 @@ Body sections: **Summary**, **Key Contributions**, **Key Concepts** (with relati
 
 `taxonomy.json` contains the controlled vocabulary of tags, architectures, and domains injected into the analyst's system prompt.  This prevents LLM hallucination and keeps metadata consistent.  Edit `taxonomy.json` to add new terms.
 
+## Daily Note Compaction (Astro-friendly)
+
+To avoid markdown file explosion on static sites, swarm-notes now maintains a **single rolling overview file** for daily discussions:
+
+- `vault/discussions/_overview.md` (configurable via `vault_overview_file`)
+- grouped by month and ISO week
+- includes stable links to source daily notes (`/discussions/...` by default)
+- includes short deterministic snippets derived from note content
+
+Optional archival behavior:
+
+- `daily_archive_cutoff_days`: move old files from `vault/discussions/daily/*.md` to `vault/discussions/archive/daily/YYYY/MM/`
+- `daily_overview_include_archived`: include archived notes in overview (default `false`)
+
+CLI overrides:
+
+```bash
+swarm-notes run \
+  --archive-dailies-older-than 30 \
+  --overview-file vault/discussions/_overview.md \
+  --exclude-archived-in-overview
+```
+
 ## License
 
 MIT — see [LICENSE](LICENSE).
