@@ -184,7 +184,10 @@ def run(
     if include_archived_in_overview is not None:
         src_config.settings.daily_overview_include_archived = include_archived_in_overview
     if overview_file:
-        src_config.settings.vault_overview_file = Path(overview_file).resolve()
+        overview_path = Path(overview_file)
+        if not overview_path.is_absolute():
+            overview_path = Path(workspace).resolve() / overview_path
+        src_config.settings.vault_overview_file = overview_path.resolve()
 
     from swarm_notes import federation, router, watcher
     from swarm_notes.vault_manager import (
