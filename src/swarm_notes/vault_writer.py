@@ -567,8 +567,12 @@ def _archive_old_daily_notes(cutoff_days: int) -> int:
         )
         archive_target.parent.mkdir(parents=True, exist_ok=True)
         if archive_target.exists():
-            archive_target.unlink()
-        shutil.move(str(note_path), str(archive_target))
+            logger.warning(
+                "VaultWriter: archive target already exists (%s); skipping archive move for %s",
+                archive_target,
+                note_path,
+            )
+            continue
         archived += 1
 
     if archived:
