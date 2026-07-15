@@ -255,7 +255,7 @@ def _write_concept_stub(
             post.metadata["modified_at"] = now_utc
             post.content = _ensure_related_paper_link(post.content, paper_ref)
 
-            with staging_path.open("wb") as f:
+            with staging_path.open("w", encoding="utf-8") as f:
                 frontmatter.dump(post, f)
 
             logger.info("VaultWriter: updated concept note → %s", staging_path)
@@ -387,7 +387,7 @@ def _create_open_question(question: OpenQuestion, analysis: PaperAnalysis) -> No
         metadata["modified_at"] = now_utc
 
     post = frontmatter.Post(content, **metadata)
-    with staging_path.open("wb") as f:
+    with staging_path.open("w", encoding="utf-8") as f:
         frontmatter.dump(post, f)
 
     logger.info("VaultWriter: tracked open question → %s", staging_path)
@@ -501,7 +501,7 @@ def append_daily_discussion(content: str) -> None:
         try:
             post = frontmatter.load(staging_path)
             post.metadata["modified_at"] = now_utc
-            with staging_path.open("wb") as f:
+            with staging_path.open("w", encoding="utf-8") as f:
                 frontmatter.dump(post, f)
         except Exception as exc:
             logger.warning("VaultWriter: could not update modified_at for %s: %s", filename, exc)
