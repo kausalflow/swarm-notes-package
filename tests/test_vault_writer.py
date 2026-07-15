@@ -3,13 +3,11 @@
 from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
-from swarm_notes.analyst import ConceptLink, OpenQuestion, PaperAnalysis, RejectedCandidate
+from swarm_notes.analyst import ConceptLink, DatasetLink, OpenQuestion, PaperAnalysis, RejectedCandidate
 from swarm_notes.config import settings
 from swarm_notes.vault_writer import (
     _build_body,
     _build_frontmatter,
-    _write_concept_stub,
-    _write_dataset_stub,
     compact_daily_notes,
     generate_daily_overview,
     write_paper,
@@ -61,8 +59,7 @@ def test_build_body_includes_archivist_review_details() -> None:
         ],
     )
 
-    with patch("swarm_notes.vault_writer._create_open_question"):
-        body = _build_body(analysis)
+    body = _build_body(analysis)
 
     assert "## Archivist Review" in body
     assert "Approved one concept and one open question." in body
@@ -117,7 +114,7 @@ def test_build_body_uses_wiki_links_for_datasets() -> None:
         key_contributions=["Contribution one."],
         tags=["benchmark"],
         architectures=[],
-        datasets=["Solar-Energy benchmark"],
+        datasets=[DatasetLink(name="Solar-Energy benchmark", description="")],
         concepts=[],
         limitations="",
         domain="time-series",
@@ -125,7 +122,7 @@ def test_build_body_uses_wiki_links_for_datasets() -> None:
     )
 
     body = _build_body(analysis)
-    assert "- [[solar-energy-benchmark]]" in body
+    assert "- [[Solar-Energy benchmark]]" in body
 
 
 def test_build_frontmatter_contains_concept_and_dataset_slugs() -> None:
@@ -140,7 +137,7 @@ def test_build_frontmatter_contains_concept_and_dataset_slugs() -> None:
         key_contributions=["Contribution one."],
         tags=["benchmark"],
         architectures=[],
-        datasets=["Solar-Energy benchmark"],
+        datasets=[DatasetLink(name="Solar-Energy benchmark", description="")],
         concepts=[
             ConceptLink(
                 slug="metric-advantage-mcts",
@@ -154,10 +151,10 @@ def test_build_frontmatter_contains_concept_and_dataset_slugs() -> None:
     )
 
     fm = _build_frontmatter(analysis, "TimeSeriesSkill")
-    assert "concept_slugs:" in fm
-    assert '  - "metric-advantage-mcts"' in fm
-    assert "dataset_slugs:" in fm
-    assert '  - "solar-energy-benchmark"' in fm
+    assert "concepts:" in fm
+    assert '  - name: "metric-advantage-mcts"' in fm
+    assert "datasets:" in fm
+    assert '  - name: "Solar-Energy benchmark"' in fm
 
 
 def test_build_body_has_single_limitations_section() -> None:
@@ -172,7 +169,7 @@ def test_build_body_has_single_limitations_section() -> None:
         key_contributions=["Contribution one."],
         tags=["benchmark"],
         architectures=[],
-        datasets=["Solar-Energy benchmark"],
+        datasets=[DatasetLink(name="Solar-Energy benchmark", description="")],
         concepts=[],
         limitations="This is a limitation.",
         domain="time-series",
@@ -183,84 +180,7 @@ def test_build_body_has_single_limitations_section() -> None:
     assert body.count("## Limitations") == 1
 
 
-def test_write_concept_stub_tracks_related_paper_link(tmp_path, monkeypatch) -> None:
-    tmp_concepts = tmp_path / "tmp-concepts"
-    vault_concepts = tmp_path / "vault-concepts"
-    tmp_concepts.mkdir(parents=True)
-    vault_concepts.mkdir(parents=True)
 
-    monkeypatch.setattr(settings, "tmp_concepts_dir", tmp_concepts)
-    monkeypatch.setattr(settings, "vault_concepts_dir", vault_concepts)
-
-    _write_concept_stub(
-        slug="uncertainty-guided-label-rebalancing",
-        display_name="Uncertainty-Guided Label Rebalancing",
-        one_liner="A relabeling mechanism based on uncertainty.",
-        paper_slug="openalex-2603-25670-uncertainty-guided-label-rebalancing-for-cps-safety-monitoring",
-    )
-
-    concept_path = tmp_concepts / "uncertainty-guided-label-rebalancing.md"
-    post = frontmatter.load(concept_path)
-    assert "[[openalex-2603-25670-uncertainty-guided-label-rebalancing-for-cps-safety-monitoring]]" in post.metadata["source_papers"]
-    assert "## Related Papers" in post.content
-    assert "- [[openalex-2603-25670-uncertainty-guided-label-rebalancing-for-cps-safety-monitoring]]" in post.content
-
-
-def test_write_dataset_stub_creates_dataset_file(tmp_path, monkeypatch) -> None:
-    tmp_datasets = tmp_path / "tmp-datasets"
-    vault_datasets = tmp_path / "vault-datasets"
-    tmp_datasets.mkdir(parents=True)
-    vault_datasets.mkdir(parents=True)
-
-    monkeypatch.setattr(settings, "tmp_datasets_dir", tmp_datasets)
-    monkeypatch.setattr(settings, "vault_datasets_dir", vault_datasets)
-
-    _write_dataset_stub("etth1", "ETTh1")
-
-    dataset_path = tmp_datasets / "etth1.md"
-    assert dataset_path.exists()
-    post = frontmatter.load(dataset_path)
-    assert post.metadata["slug"] == "etth1"
-    assert post.metadata["type"] == "dataset"
-    assert "Related Papers" not in post.content
-
-
-def test_write_paper_creates_dataset_stubs(tmp_path, monkeypatch) -> None:
-    tmp_papers = tmp_path / "tmp-papers"
-    tmp_concepts = tmp_path / "tmp-concepts"
-    tmp_datasets = tmp_path / "tmp-datasets"
-    vault_concepts = tmp_path / "vault-concepts"
-    vault_datasets = tmp_path / "vault-datasets"
-
-    for p in [tmp_papers, tmp_concepts, tmp_datasets, vault_concepts, vault_datasets]:
-        p.mkdir(parents=True)
-
-    monkeypatch.setattr(settings, "tmp_papers_dir", tmp_papers)
-    monkeypatch.setattr(settings, "tmp_concepts_dir", tmp_concepts)
-    monkeypatch.setattr(settings, "tmp_datasets_dir", tmp_datasets)
-    monkeypatch.setattr(settings, "vault_concepts_dir", vault_concepts)
-    monkeypatch.setattr(settings, "vault_datasets_dir", vault_datasets)
-
-    analysis = PaperAnalysis(
-        title="Dataset Stub Through Write",
-        authors=["Test Author"],
-        published="2026-03-27",
-        arxiv_id="2603.44444",
-        source="openalex",
-        url="https://arxiv.org/abs/2603.44444",
-        summary="A concise summary.",
-        key_contributions=["Contribution one."],
-        tags=["benchmark"],
-        architectures=[],
-        datasets=["ETTh1"],
-        concepts=[],
-        limitations="",
-        domain="time-series",
-        open_questions=[],
-    )
-
-    write_paper(analysis, "TimeSeriesSkill")
-    assert (tmp_datasets / "etth1.md").exists()
 
 
 def test_generate_daily_overview_groups_by_month_and_week(tmp_path, monkeypatch) -> None:

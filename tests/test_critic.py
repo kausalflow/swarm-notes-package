@@ -2,7 +2,7 @@
 
 from unittest.mock import MagicMock, patch
 
-from swarm_notes.analyst import ConceptLink, OpenQuestion, PaperAnalysis, RejectedCandidate
+from swarm_notes.analyst import ConceptLink, DatasetLink, OpenQuestion, PaperAnalysis, RejectedCandidate
 from swarm_notes.critic import review_analysis, _build_system_prompt
 from swarm_notes.config import settings
 from swarm_notes.router import SkillSpec
@@ -113,7 +113,10 @@ def test_review_analysis_replaces_candidates_with_approved_items(mock_agent_clas
             evidence_excerpt="Future work includes robust calibration under drift.",
         )
     ]
-    analysis.datasets = ["ETTh1", "10 real-world datasets"]
+    analysis.datasets = [
+        DatasetLink(name="ETTh1", description="Dataset"),
+        DatasetLink(name="10 real-world datasets", description="Generic")
+    ]
 
     approved_concept = ConceptLink(
         slug="state-space-mixer",
@@ -130,7 +133,8 @@ def test_review_analysis_replaces_candidates_with_approved_items(mock_agent_clas
     mock_result = MagicMock()
     mock_result.output.approved_concepts = [approved_concept]
     mock_result.output.approved_open_questions = [approved_question]
-    mock_result.output.approved_datasets = ["ETTh1"]
+    approved_dataset = DatasetLink(name="ETTh1", description="Dataset")
+    mock_result.output.approved_datasets = [approved_dataset]
     mock_result.output.review_summary = "Approved one concept and one open question."
     mock_result.output.rejected_candidates = [
         RejectedCandidate(
@@ -149,7 +153,7 @@ def test_review_analysis_replaces_candidates_with_approved_items(mock_agent_clas
 
     assert result.concepts == [approved_concept]
     assert result.open_questions == [approved_question]
-    assert result.datasets == ["ETTh1"]
+    assert result.datasets == [approved_dataset]
     assert result.critic_review_summary == "Approved one concept and one open question."
     assert result.critic_rejected_candidates == [
         RejectedCandidate(
@@ -163,21 +167,21 @@ def test_review_analysis_replaces_candidates_with_approved_items(mock_agent_clas
 
 
 def test_build_system_prompt_includes_existing_open_questions_and_datasets(tmp_path, monkeypatch) -> None:
-    concepts_dir = tmp_path / "concepts"
-    open_questions_dir = tmp_path / "open-questions"
-    datasets_dir = tmp_path / "datasets"
+    papers_dir = tmp_path / "papers"
+    papers_dir.mkdir(parents=True)
 
-    concepts_dir.mkdir(parents=True)
-    open_questions_dir.mkdir(parents=True)
-    datasets_dir.mkdir(parents=True)
+    paper_fm = """---
+concepts:
+  - name: "global-steerable-reasoning"
+open_questions:
+  - name: "context-pruning-for-cost-reduction"
+datasets:
+  - name: "etth1"
+---
+# Content"""
+    (papers_dir / "paper1.md").write_text(paper_fm, encoding="utf-8")
 
-    (concepts_dir / "global-steerable-reasoning.md").write_text("# concept", encoding="utf-8")
-    (open_questions_dir / "context-pruning-for-cost-reduction.md").write_text("# open question", encoding="utf-8")
-    (datasets_dir / "etth1.md").write_text("# dataset", encoding="utf-8")
-
-    monkeypatch.setattr(settings, "vault_concepts_dir", concepts_dir)
-    monkeypatch.setattr(settings, "vault_open_questions_dir", open_questions_dir)
-    monkeypatch.setattr(settings, "vault_datasets_dir", datasets_dir)
+    monkeypatch.setattr(settings, "vault_papers_dir", papers_dir)
 
     prompt = _build_system_prompt(_build_skill())
 
