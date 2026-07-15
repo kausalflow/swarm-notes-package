@@ -689,7 +689,19 @@ def _period_summary(notes: list[dict]) -> str:
 
 
 def _daily_note_route(path: Path) -> str:
-    rel = path.relative_to(settings.vault_discussions_dir).as_posix()
+    try:
+        rel_path = path.relative_to(settings.vault_discussions_dir)
+    except ValueError:
+        try:
+            rel_path = path.relative_to(settings.vault_dir)
+        except ValueError:
+            logger.warning(
+                "VaultWriter: cannot compute relative route for %s; falling back to filename",
+                path,
+            )
+            rel_path = Path(path.name)
+
+    rel = rel_path.as_posix()
     rel_without_ext = rel[:-3] if rel.endswith(".md") else rel
     prefix = settings.daily_overview_link_prefix.rstrip("/")
     return f"{prefix}/{rel_without_ext}" if prefix else f"/{rel_without_ext}"
