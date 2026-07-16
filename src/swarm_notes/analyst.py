@@ -41,21 +41,21 @@ class ConceptLink(BaseModel):
         description="One sentence that defines this concept in the context of the paper."
     )
     importance_reason: str = Field(
-        default="",
+        # default="",
         description=(
             "Why this concept is central to the paper's contribution or novelty. "
             "Leave empty if not applicable."
         ),
     )
     reusability_reason: str = Field(
-        default="",
+        # default="",
         description=(
             "Why this concept is likely to recur across future papers and deserves "
             "a permanent vault note. Leave empty if not applicable."
         ),
     )
     evidence_excerpt: str = Field(
-        default="",
+        # default="",
         description=(
             "Short phrase or sentence from the title or abstract supporting this concept. "
             "Leave empty if not applicable."
@@ -79,14 +79,14 @@ class OpenQuestion(BaseModel):
         description="Detailed explanation of the open question or future work."
     )
     importance_reason: str = Field(
-        default="",
+        # default="",
         description=(
             "Why this open question is technically important and worth tracking across papers. "
             "Leave empty if not applicable."
         ),
     )
     evidence_excerpt: str = Field(
-        default="",
+        # default="",
         description=(
             "Short phrase or sentence from the paper text supporting that this question is explicit and unresolved. "
             "Leave empty if not applicable."
@@ -155,7 +155,7 @@ class PaperAnalysisBase(BaseModel):
     )
 
     architectures: list[str] = Field(
-        default_factory=list,
+        # default_factory=list,
         description=(
             "Architecture names used or proposed (from the taxonomy architectures list). "
             "Leave empty if not applicable."
@@ -163,7 +163,7 @@ class PaperAnalysisBase(BaseModel):
     )
 
     datasets: list[DatasetLink] = Field(
-        default_factory=list,
+        # default_factory=list,
         description=(
             "Names of CRITICAL datasets used for evaluation or training "
             "(e.g. 'ImageNet', 'ETTh1', 'LAION-5B'). "
@@ -172,7 +172,7 @@ class PaperAnalysisBase(BaseModel):
     )
 
     concepts: list[ConceptLink] = Field(
-        default_factory=list,
+        # default_factory=list,
         description=(
             "Key concepts introduced or heavily used by the paper that "
             "should have their own vault entry (e.g. a new architecture, "
@@ -181,7 +181,7 @@ class PaperAnalysisBase(BaseModel):
     )
 
     limitations: str = Field(
-        default="",
+        # default="",
         description="Brief statement of known limitations or future work.",
     )
 
@@ -193,17 +193,17 @@ class PaperAnalysisBase(BaseModel):
     )
 
     open_questions: list[OpenQuestion] = Field(
-        default_factory=list,
+        # default_factory=list,
         description="List of open questions or future research identified by the domain expert.",
     )
 
     critic_review_summary: str = Field(
-        default="",
+        # default="",
         description="Short archivist review summary explaining why items were accepted or rejected.",
     )
 
     critic_rejected_candidates: list[RejectedCandidate] = Field(
-        default_factory=list,
+        # default_factory=list,
         description="Structured rejection records for candidate concepts or open questions rejected by the archivist review.",
     )
 
