@@ -253,7 +253,7 @@ class Settings(BaseModel):
                 data.update(yaml_data)
                 
         if "llm_model" not in data:
-            explicit = os.environ.get("settings.llm_model", "")
+            explicit = os.environ.get("LLM_MODEL", "")
             if explicit:
                 data["llm_model"] = explicit
             elif os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or os.environ.get("LLM_API_KEY", "").startswith("AIzaSy"):

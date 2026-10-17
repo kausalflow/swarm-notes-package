@@ -25,7 +25,7 @@ class TestDefaultLlmModel:
     def test_explicit_llm_model_env_wins(self):
         cfg = _reload_config(
             {
-                "settings.llm_model": "openai:gpt-4o",
+                "LLM_MODEL": "openai:gpt-4o",
                 "GEMINI_API_KEY": "AIzaSy_fake_gemini_key",
             }
         )

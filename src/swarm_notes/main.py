@@ -328,6 +328,13 @@ def run(
             len(papers),
         )
 
+        if not analyses:
+            # Every paper failed (e.g. the LLM rejected every request). Exit
+            # non-zero so the scheduled workflow shows up as failed instead of
+            # silently committing nothing.
+            logger.error("No papers were processed successfully – failing the run")
+            raise typer.Exit(1)
+
     except typer.Exit:
         # Re-raise Typer exit as-is
         raise

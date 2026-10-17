@@ -210,17 +210,37 @@ class PaperAnalysisBase(BaseModel):
 
 class PaperAnalysis(PaperAnalysisBase):
     """Structured extraction output for a single academic paper."""
-    tags: list[str] = Field(default_factory=list, description="All assigned tags.")
+    tags: list[str] = Field(
+        default_factory=list,
+        description=(
+            "Tags for this paper. Reuse tags from the EXISTING TAGS list whenever one applies; "
+            "only add a new tag if no existing tag describes the idea. Maximum 10 tags."
+        ),
+    )
+
+
+# Upper bound on how many existing tags are listed in the prompt. Tags are
+# passed as prompt text rather than as an enum in the output schema: a schema
+# enum with hundreds of values makes Gemini reject the request with
+# 400 INVALID_ARGUMENT.
+MAX_PROMPT_TAGS = 1000
 
 
 # ---------------------------------------------------------------------------
 # Agent factory
 # ---------------------------------------------------------------------------
 
-def _build_system_prompt(skill: SkillSpec, taxonomy: dict) -> str:
+def _build_system_prompt(
+    skill: SkillSpec, taxonomy: dict, existing_tags: list[str] | None = None
+) -> str:
     architectures_list = ", ".join(taxonomy.get("architectures", []))
     domains_list = ", ".join(taxonomy.get("domains", []))
-    
+    existing_tags_str = (
+        ", ".join(existing_tags[:MAX_PROMPT_TAGS])
+        if existing_tags
+        else "(No tags currently exist in the vault)"
+    )
+
     base_prompt = f"""You are an expert academic paper analyst specialising in machine learning research.
 
 Your task is to analyse the provided paper abstract and extract structured information.
@@ -229,11 +249,14 @@ TAXONOMY (use ONLY these values for architectures/domains):
 - Available architectures: {architectures_list}
 - Available domains: {domains_list}
 
+EXISTING TAGS IN VAULT:
+{existing_tags_str}
+
 SKILL CONTEXT ({skill.name}):
 {skill.extra_system_prompt}
 
 IMPORTANT RULES:
-1. Select tags according to the dynamic schema.
+1. Prefer tags from the EXISTING TAGS list, spelled exactly as listed. Add a new tag only when none applies, and keep new tags to an absolute minimum.
 2. Select domain ONLY from the taxonomy domains list above.
 3. Select architectures ONLY from the taxonomy architectures list above (or leave empty).
 4. The summary must be 3-5 sentences, technically precise but accessible.
@@ -268,46 +291,12 @@ def analyse(paper: RawPaper, skill: SkillSpec) -> PaperAnalysis:
         Structured extraction result.
     """
     taxonomy = _load_taxonomy()
-    system_prompt = _build_system_prompt(skill, taxonomy)
     existing_tags = get_existing_tags()
-    
-    from pydantic import create_model
+    system_prompt = _build_system_prompt(skill, taxonomy, existing_tags)
 
-    fields = {}
-    if existing_tags:
-        ExistingTags = Literal[tuple(existing_tags)]  # type: ignore
-        fields["existing_tags"] = (
-            list[ExistingTags],
-            Field(
-                default_factory=list,
-                description="Tags chosen from the existing knowledge base. Pick only tags that genuinely apply."
-            )
-        )
-        fields["new_tags"] = (
-            list[str],
-            Field(
-                default_factory=list,
-                description="Use this ONLY if the concept cannot be accurately described by any of the existing_tags. Keep new tags to an absolute minimum."
-            )
-        )
-    else:
-        fields["new_tags"] = (
-            list[str],
-            Field(
-                default_factory=list,
-                description="List of new tags for this paper."
-            )
-        )
-        
-    DynamicPaperAnalysis = create_model(
-        "DynamicPaperAnalysis",
-        __base__=PaperAnalysisBase,
-        **fields
-    )
-
-    agent: Agent[None, DynamicPaperAnalysis] = Agent(
+    agent: Agent[None, PaperAnalysis] = Agent(
         model=settings.llm_model,
-        output_type=DynamicPaperAnalysis,
+        output_type=PaperAnalysis,
         system_prompt=system_prompt,
     )
 
@@ -323,17 +312,8 @@ def analyse(paper: RawPaper, skill: SkillSpec) -> PaperAnalysis:
     logger.info("Analyst: analysing paper %s with skill %s", paper.arxiv_id, skill.name)
 
     result = agent.run_sync(user_message)
-    dynamic_analysis = result.output
-    
-    # Merge existing and new tags
-    combined_tags = []
-    if hasattr(dynamic_analysis, "existing_tags"):
-        combined_tags.extend(getattr(dynamic_analysis, "existing_tags", []))
-    if hasattr(dynamic_analysis, "new_tags"):
-        combined_tags.extend(getattr(dynamic_analysis, "new_tags", []))
-        
-    analysis_dict = dynamic_analysis.model_dump(exclude={"existing_tags", "new_tags"})
-    analysis = PaperAnalysis(**analysis_dict, tags=combined_tags)
+    analysis: PaperAnalysis = result.output
+    analysis.tags = _normalise_tags(analysis.tags, existing_tags)
 
     # Ensure metadata from the raw paper is preserved accurately
     analysis.arxiv_id = paper.arxiv_id
@@ -350,6 +330,22 @@ def analyse(paper: RawPaper, skill: SkillSpec) -> PaperAnalysis:
         len(analysis.concepts),
     )
     return analysis
+
+
+def _normalise_tags(tags: list[str], existing_tags: list[str]) -> list[str]:
+    """Map tags onto the vault's existing spelling (case-insensitive) and drop duplicates."""
+    canonical = {t.lower(): t for t in existing_tags}
+    result: list[str] = []
+    seen: set[str] = set()
+    for tag in tags:
+        tag = tag.strip()
+        if not tag:
+            continue
+        tag = canonical.get(tag.lower(), tag)
+        if tag.lower() not in seen:
+            seen.add(tag.lower())
+            result.append(tag)
+    return result
 
 
 def _load_taxonomy() -> dict:
