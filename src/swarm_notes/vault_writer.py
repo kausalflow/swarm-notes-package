@@ -616,5 +616,14 @@ def _slugify(text: str) -> str:
 
 
 def _yaml_escape(text: str) -> str:
-    """Escape double quotes in YAML string values."""
-    return text.replace('"', '\\"')
+    """Escape text for use inside a double-quoted YAML scalar.
+
+    Backslashes must be escaped first: titles with LaTeX such as
+    ``$\\mathrm{SO}(2)$`` otherwise produce invalid escape sequences and
+    break every YAML parser that reads the note (including the site build).
+    """
+    return (
+        text.replace("\\", "\\\\")
+        .replace('"', '\\"')
+        .replace("\n", " ")
+    )
