@@ -153,6 +153,9 @@ class Settings(BaseModel):
     openai_api_key: str = Field(default_factory=lambda: os.environ.get("OPENAI_API_KEY", os.environ.get("LLM_API_KEY", "")))
     gemini_api_key: str = Field(default_factory=lambda: os.environ.get("GEMINI_API_KEY", os.environ.get("GOOGLE_API_KEY", "")))
     llm_model: str = Field(default="openai:gpt-4o-mini")
+    # Optional second model, tried whenever a call to llm_model fails (rate
+    # limit, 4xx/5xx, outage). Empty disables the fallback.
+    llm_fallback_model: str = Field(default_factory=lambda: os.environ.get("LLM_FALLBACK_MODEL", ""))
     
     # Watcher config
     paper_search: PaperSearchSettings = Field(default_factory=PaperSearchSettings)
@@ -333,6 +336,15 @@ class Settings(BaseModel):
         return cls(**cast(dict[str, Any], data))
 
 settings = Settings.load_from_yaml()
+
+def get_model() -> Any:
+    """Return the model for agents: llm_model, falling back to llm_fallback_model on errors."""
+    if not settings.llm_fallback_model:
+        return settings.llm_model
+    from pydantic_ai.models.fallback import FallbackModel
+
+    return FallbackModel(settings.llm_model, settings.llm_fallback_model)
+
 
 def load_yaml_config(yaml_path: str | Path) -> None:
     """Override configuration variables from a YAML file."""

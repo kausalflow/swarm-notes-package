@@ -15,7 +15,7 @@ from typing import Annotated, Literal
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
-from swarm_notes.config import settings
+from swarm_notes.config import get_model, settings
 from swarm_notes.router import SkillSpec
 from swarm_notes.vault_manager import get_tag_counts, select_relevant
 from swarm_notes.watcher import RawPaper
@@ -309,7 +309,7 @@ def analyse(paper: RawPaper, skill: SkillSpec) -> PaperAnalysis:
     system_prompt = _build_system_prompt(skill, taxonomy, prompt_tags)
 
     agent: Agent[None, PaperAnalysis] = Agent(
-        model=settings.llm_model,
+        model=get_model(),
         output_type=PaperAnalysis,
         system_prompt=system_prompt,
     )

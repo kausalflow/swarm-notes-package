@@ -121,6 +121,17 @@ for biorxiv/medrxiv papers.
 For CI/CD, add `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY` as repository secrets
 (same place as `LLM_API_KEY`).
 
+### Fallback model
+
+Set `llm_fallback_model` in the config (or the `LLM_FALLBACK_MODEL` environment variable) to a second model. Every agent call tries `llm_model` first and switches to the fallback when that call fails, for example on a rate limit, a 4xx/5xx error or an outage:
+
+```yaml
+llm_model: "google-gla:gemini-flash-lite-latest"
+llm_fallback_model: "anthropic:claude-haiku-5-5"
+```
+
+The fallback provider needs its own key, for example `ANTHROPIC_API_KEY` for Claude.
+
 ## CI/CD Setup
 
 ### Add the required secret

@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from pydantic_ai import Agent
 
 from swarm_notes.analyst import ConceptLink, DatasetLink, OpenQuestion, PaperAnalysis, RejectedCandidate
-from swarm_notes.config import settings
+from swarm_notes.config import get_model, settings
 from swarm_notes.router import SkillSpec
 from swarm_notes.vault_manager import get_existing_entities, select_relevant
 from swarm_notes.watcher import RawPaper
@@ -148,7 +148,7 @@ def review_analysis(analysis: PaperAnalysis, paper: RawPaper, skill: SkillSpec) 
         return analysis
 
     agent: Agent[None, CriticReview] = Agent(
-        model=settings.llm_model,
+        model=get_model(),
         output_type=CriticReview,
         system_prompt=_build_system_prompt(skill, _relevance_context(analysis, paper)),
     )

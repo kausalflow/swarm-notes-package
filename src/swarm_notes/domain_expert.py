@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 from pydantic_ai import Agent
 
 from swarm_notes.analyst import OpenQuestion
-from swarm_notes.config import settings
+from swarm_notes.config import get_model, settings
 from swarm_notes.router import SkillSpec
 
 logger = logging.getLogger(__name__)
@@ -61,7 +61,7 @@ def extract_open_questions(
         system_prompt += f"\n\nSKILL-SPECIFIC CONTEXT:\n{skill.domain_expert_context}"
 
     agent: Agent[None, list[OpenQuestion]] = Agent(
-        model=settings.llm_model,
+        model=get_model(),
         output_type=list[OpenQuestion],
         system_prompt=system_prompt
     )
