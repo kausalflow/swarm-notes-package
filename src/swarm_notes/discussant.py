@@ -5,7 +5,7 @@ import logging
 from pydantic_ai import Agent
 
 from swarm_notes.analyst import PaperAnalysis
-from swarm_notes.config import settings
+from swarm_notes.config import get_model
 from swarm_notes.router import SkillSpec
 
 logger = logging.getLogger(__name__)
@@ -27,7 +27,7 @@ def discuss_papers(analyses: list[PaperAnalysis], skill: SkillSpec | None = None
         system_prompt += f"\n\nSKILL-SPECIFIC CONTEXT:\n{skill.discussant_context}"
 
     discussant_agent = Agent(
-        model=settings.llm_model,
+        model=get_model(),
         system_prompt=system_prompt
     )
 

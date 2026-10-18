@@ -249,3 +249,32 @@ class TestPaperSourceConfig:
             assert loaded.daily_overview_include_archived is True
             assert loaded.daily_overview_link_prefix == "/astro-notes"
             assert loaded.vault_overview_file == Path(temp_dir) / "overview.md"
+
+
+class TestFallbackModel:
+    """LLM_FALLBACK_MODEL wraps the main model in a FallbackModel."""
+
+    def test_no_fallback_returns_model_name(self):
+        cfg = _reload_config({"LLM_MODEL": "google-gla:gemini-flash-lite-latest"})
+        assert cfg.get_model() == "google-gla:gemini-flash-lite-latest"
+
+    def test_fallback_model_is_tried_after_main_model(self):
+        from pydantic_ai.models.fallback import FallbackModel
+
+        cfg = _reload_config(
+            {
+                "LLM_MODEL": "test",
+                "LLM_FALLBACK_MODEL": "test",
+            }
+        )
+        model = cfg.get_model()
+        assert isinstance(model, FallbackModel)
+        assert len(model.models) == 2
+
+    def test_fallback_model_from_yaml(self):
+        with TemporaryDirectory() as tmp:
+            path = Path(tmp) / "config.yaml"
+            path.write_text('llm_model: "test"\nllm_fallback_model: "test"\n', encoding="utf-8")
+            cfg = _reload_config({})
+            cfg.load_yaml_config(path)
+            assert cfg.settings.llm_fallback_model == "test"
