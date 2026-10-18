@@ -5,6 +5,7 @@ staging, discarding, and committing of the vault work correctly.
 """
 
 import pytest
+from pathlib import Path
 
 from unittest.mock import MagicMock, patch
 
@@ -124,3 +125,49 @@ def test_get_existing_arxiv_ids_filters_non_arxiv_sources(
     arxiv_ids = vault_manager.get_existing_arxiv_ids()
 
     assert arxiv_ids == {"2503.01234", "2503.01236"}
+
+
+def test_select_relevant_prefers_shared_words_then_frequency() -> None:
+    from collections import Counter
+
+    names = ["graph neural networks", "anomaly detection", "llm", "forecasting"]
+    counts = Counter({"llm": 50, "forecasting": 10, "graph neural networks": 1})
+    picked = vault_manager.select_relevant(
+        names, "Anomaly detection with graph models", 3, counts
+    )
+    assert picked == ["anomaly detection", "graph neural networks", "llm"]
+    assert vault_manager.select_relevant(names, "", 10) == names
+
+
+def test_get_existing_entities_includes_entity_note_slugs(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    papers_dir = tmp_path / "papers"
+    concepts_dir = tmp_path / "concepts"
+    papers_dir.mkdir()
+    concepts_dir.mkdir()
+    (papers_dir / "p.md").write_text('---\nconcepts:\n  - name: "from-frontmatter"\n---\n')
+    (concepts_dir / "from-note.md").write_text("---\ntitle: x\n---\n")
+    monkeypatch.setattr(vault_manager.settings, "vault_papers_dir", papers_dir)
+    monkeypatch.setattr(vault_manager.settings, "vault_concepts_dir", concepts_dir)
+
+    assert vault_manager.get_existing_entities("concepts") == ["from-frontmatter", "from-note"]
+
+
+def test_paper_metadata_is_parsed_once_per_vault_state(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    papers_dir = tmp_path / "papers"
+    papers_dir.mkdir()
+    (papers_dir / "p.md").write_text('---\ntags:\n  - "a"\n---\n')
+    monkeypatch.setattr(vault_manager.settings, "vault_papers_dir", papers_dir)
+
+    real_load = vault_manager.frontmatter.load
+    with patch("swarm_notes.vault_manager.frontmatter.load", side_effect=real_load) as load:
+        assert vault_manager.get_existing_tags() == ["a"]
+        assert vault_manager.get_existing_tags() == ["a"]
+        assert load.call_count == 1
+        (papers_dir / "q.md").write_text('---\ntags:\n  - "b"\n---\n')
+        assert vault_manager.get_existing_tags() == ["a", "b"]

@@ -8,6 +8,8 @@ from __future__ import annotations
 
 import json
 import logging
+import re
+from collections import Counter
 from typing import Annotated, Literal
 
 from pydantic import BaseModel, Field
@@ -15,7 +17,7 @@ from pydantic_ai import Agent
 
 from swarm_notes.config import settings
 from swarm_notes.router import SkillSpec
-from swarm_notes.vault_manager import get_existing_tags
+from swarm_notes.vault_manager import get_tag_counts, select_relevant
 from swarm_notes.watcher import RawPaper
 
 logger = logging.getLogger(__name__)
@@ -222,8 +224,10 @@ class PaperAnalysis(PaperAnalysisBase):
 # Upper bound on how many existing tags are listed in the prompt. Tags are
 # passed as prompt text rather than as an enum in the output schema: a schema
 # enum with hundreds of values makes Gemini reject the request with
-# 400 INVALID_ARGUMENT.
-MAX_PROMPT_TAGS = 1000
+# 400 INVALID_ARGUMENT. The tags listed are the ones most relevant to the
+# paper (see ``select_relevant``), so the prompt stays the same size as the
+# vault grows.
+MAX_PROMPT_TAGS = 200
 
 
 # ---------------------------------------------------------------------------
@@ -291,8 +295,18 @@ def analyse(paper: RawPaper, skill: SkillSpec) -> PaperAnalysis:
         Structured extraction result.
     """
     taxonomy = _load_taxonomy()
-    existing_tags = get_existing_tags()
-    system_prompt = _build_system_prompt(skill, taxonomy, existing_tags)
+    tag_counts = get_tag_counts()
+    existing_tags = sorted(tag_counts)
+    # List one spelling per tag (the most used), so variants such as
+    # "time-series" and "time series" don't take up several slots.
+    canonical_tags = sorted(set(_canonical_tags(existing_tags, tag_counts).values()))
+    prompt_tags = select_relevant(
+        canonical_tags,
+        f"{paper.title}\n{paper.abstract}",
+        MAX_PROMPT_TAGS,
+        tag_counts,
+    )
+    system_prompt = _build_system_prompt(skill, taxonomy, prompt_tags)
 
     agent: Agent[None, PaperAnalysis] = Agent(
         model=settings.llm_model,
@@ -313,7 +327,7 @@ def analyse(paper: RawPaper, skill: SkillSpec) -> PaperAnalysis:
 
     result = agent.run_sync(user_message)
     analysis: PaperAnalysis = result.output
-    analysis.tags = _normalise_tags(analysis.tags, existing_tags)
+    analysis.tags = _normalise_tags(analysis.tags, existing_tags, tag_counts)
 
     # Ensure metadata from the raw paper is preserved accurately
     analysis.arxiv_id = paper.arxiv_id
@@ -332,19 +346,39 @@ def analyse(paper: RawPaper, skill: SkillSpec) -> PaperAnalysis:
     return analysis
 
 
-def _normalise_tags(tags: list[str], existing_tags: list[str]) -> list[str]:
-    """Map tags onto the vault's existing spelling (case-insensitive) and drop duplicates."""
-    canonical = {t.lower(): t for t in existing_tags}
+def _tag_key(tag: str) -> str:
+    """Key that treats case, spaces, hyphens and underscores as the same."""
+    return re.sub(r"[\s_\-]+", " ", tag.strip().lower()).strip()
+
+
+def _canonical_tags(existing_tags: list[str], counts: Counter[str] | None = None) -> dict[str, str]:
+    """Map each tag key to the vault's most used spelling of it."""
+    counts = counts or Counter()
+    canonical: dict[str, str] = {}
+    for t in sorted(existing_tags, key=lambda t: (-counts.get(t, 0), t)):
+        canonical.setdefault(_tag_key(t), t)
+    return canonical
+
+
+def _normalise_tags(
+    tags: list[str],
+    existing_tags: list[str],
+    counts: Counter[str] | None = None,
+) -> list[str]:
+    """Map tags onto the vault's existing spelling and drop duplicates.
+
+    "Time-Series", "time series" and "time_series" all map to whichever
+    spelling the vault already uses most.
+    """
+    canonical = _canonical_tags(existing_tags, counts)
     result: list[str] = []
     seen: set[str] = set()
-    for tag in tags:
-        tag = tag.strip()
-        if not tag:
+    for tag in (part.strip() for t in tags for part in t.split(",")):
+        key = _tag_key(tag)
+        if not key or key in seen:
             continue
-        tag = canonical.get(tag.lower(), tag)
-        if tag.lower() not in seen:
-            seen.add(tag.lower())
-            result.append(tag)
+        seen.add(key)
+        result.append(canonical.get(key, tag))
     return result
 
 
