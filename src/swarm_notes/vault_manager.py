@@ -9,7 +9,9 @@ partial corruption of the live vault.
 from __future__ import annotations
 
 import logging
+import re
 import shutil
+from collections import Counter
 from pathlib import Path
 
 import frontmatter
@@ -88,42 +90,117 @@ def _merge_directory(src: Path, dst: Path) -> None:
             logger.debug("Staged %s → %s", src_file, dst_file)
 
 
+_ENTITY_DIR_SETTINGS = {
+    "concepts": "vault_concepts_dir",
+    "datasets": "vault_datasets_dir",
+    "open_questions": "vault_open_questions_dir",
+}
+
+# Cache of parsed paper frontmatter, keyed on the papers directory and its
+# state. A run only writes to tmp_vault/, so the live vault is parsed once per
+# run instead of once per prompt.
+_paper_metadata_cache: dict[tuple, list[dict]] = {}
+
+
+def _load_paper_metadata() -> list[dict]:
+    """Return the frontmatter of every live vault paper, parsed once per vault state."""
+    papers_dir = settings.vault_papers_dir
+    if not papers_dir.exists():
+        return []
+    files = sorted(papers_dir.glob("*.md"))
+    key = (str(papers_dir), papers_dir.stat().st_mtime_ns, len(files))
+    cached = _paper_metadata_cache.get(key)
+    if cached is not None:
+        return cached
+    metadata: list[dict] = []
+    for f in files:
+        try:
+            metadata.append(frontmatter.load(f).metadata)
+        except Exception as exc:
+            logger.warning("VaultManager: failed to parse frontmatter from %s: %s", f, exc)
+    _paper_metadata_cache.clear()
+    _paper_metadata_cache[key] = metadata
+    return metadata
+
+
+def get_tag_counts() -> Counter[str]:
+    """Return how many live vault papers use each tag."""
+    counts: Counter[str] = Counter()
+    for meta in _load_paper_metadata():
+        file_tags = meta.get("tags", [])
+        if isinstance(file_tags, str):
+            file_tags = [file_tags]
+        if not isinstance(file_tags, list):
+            continue
+        # Some older notes hold several tags in one comma-joined string.
+        split = {part.strip() for t in file_tags if isinstance(t, str) for part in t.split(",")}
+        for t in split - {""}:
+            counts[t] += 1
+    return counts
+
+
 def get_existing_tags() -> list[str]:
     """Return a deduplicated list of all tags currently found in live vault papers."""
-    if not settings.vault_papers_dir.exists():
-        return []
-    tags_set = set()
-    for f in settings.vault_papers_dir.glob("*.md"):
-        try:
-            post = frontmatter.load(f)
-            file_tags = post.metadata.get("tags", [])
-            if isinstance(file_tags, list):
-                for t in file_tags:
-                    if isinstance(t, str) and t.strip():
-                        tags_set.add(t.strip())
-            elif isinstance(file_tags, str) and file_tags.strip():
-                tags_set.add(file_tags.strip())
-        except Exception as exc:
-            logger.warning("VaultManager: failed to parse tags from %s: %s", f, exc)
-    return sorted(list(tags_set))
+    return sorted(get_tag_counts())
 
 
 def get_existing_entities(entity_type: str) -> list[str]:
-    """Return a deduplicated list of entity names (e.g. concepts, datasets, open_questions) from live vault papers."""
-    if not settings.vault_papers_dir.exists():
-        return []
-    entity_set = set()
-    for f in settings.vault_papers_dir.glob("*.md"):
-        try:
-            post = frontmatter.load(f)
-            entities = post.metadata.get(entity_type, [])
-            if isinstance(entities, list):
-                for e in entities:
-                    if isinstance(e, dict) and "name" in e:
-                        entity_set.add(e["name"])
-        except Exception as exc:
-            pass
-    return sorted(list(entity_set))
+    """Return entity names (e.g. concepts, datasets, open_questions) known to the vault.
+
+    Names come from paper frontmatter and from the slugs of the standalone
+    entity notes (``vault/concepts/<slug>.md`` and so on).
+    """
+    entity_set: set[str] = set()
+    for meta in _load_paper_metadata():
+        entities = meta.get(entity_type, [])
+        if isinstance(entities, list):
+            for e in entities:
+                if isinstance(e, dict) and e.get("name"):
+                    entity_set.add(str(e["name"]))
+    dir_setting = _ENTITY_DIR_SETTINGS.get(entity_type)
+    entity_dir = getattr(settings, dir_setting, None) if dir_setting else None
+    if entity_dir is not None and entity_dir.exists():
+        entity_set.update(f.stem for f in entity_dir.glob("*.md") if not f.name.startswith("_"))
+    return sorted(entity_set)
+
+
+_WORD_RE = re.compile(r"[a-z0-9]+")
+_STOPWORDS = frozenset({
+    "and", "are", "based", "for", "from", "into", "its", "new", "our",
+    "the", "their", "this", "that", "towards", "using", "via", "with",
+})
+
+
+def _words(text: str) -> set[str]:
+    return {w for w in _WORD_RE.findall(text.lower()) if len(w) > 2 and w not in _STOPWORDS}
+
+
+def select_relevant(
+    names: list[str],
+    text: str,
+    limit: int,
+    counts: Counter[str] | None = None,
+) -> list[str]:
+    """Pick at most *limit* names, the ones sharing the most words with *text* first.
+
+    Names with no word in common are used only to fill the remaining slots,
+    most frequent first (by *counts*). This keeps prompts a fixed size however
+    large the vault grows, while still showing the names a paper is likely to
+    reuse.
+    """
+    if len(names) <= limit:
+        return list(names)
+    text_words = _words(text)
+    counts = counts or Counter()
+
+    def rank(name: str) -> tuple:
+        name_words = _words(name)
+        shared = len(name_words & text_words)
+        # More shared words first, then names that are mostly shared words
+        # ("forecasting" over "forecasting-for-sparse-retail-demand").
+        return (-shared, -shared / max(len(name_words), 1), -counts.get(name, 0), name)
+
+    return sorted(names, key=rank)[:limit]
 
 
 def make_storage_id(source: str, paper_id: str) -> str:

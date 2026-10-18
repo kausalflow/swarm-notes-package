@@ -12,7 +12,7 @@ from pydantic_ai import Agent
 from swarm_notes.analyst import ConceptLink, DatasetLink, OpenQuestion, PaperAnalysis, RejectedCandidate
 from swarm_notes.config import settings
 from swarm_notes.router import SkillSpec
-from swarm_notes.vault_manager import get_existing_entities
+from swarm_notes.vault_manager import get_existing_entities, select_relevant
 from swarm_notes.watcher import RawPaper
 
 logger = logging.getLogger(__name__)
@@ -61,13 +61,29 @@ class CriticReview(BaseModel):
     )
 
 
-def _build_system_prompt(skill: SkillSpec) -> str:
-    existing_concepts = get_existing_entities("concepts")
-    existing_concepts_str = ", ".join(existing_concepts) if existing_concepts else "(No concepts currently exist in the vault)"
-    existing_open_questions = get_existing_entities("open_questions")
-    existing_open_questions_str = ", ".join(existing_open_questions) if existing_open_questions else "(No open questions currently exist in the vault)"
-    existing_datasets = get_existing_entities("datasets")
-    existing_datasets_str = ", ".join(existing_datasets) if existing_datasets else "(No datasets currently exist in the vault)"
+# Upper bound on how many existing concepts, open questions and datasets are
+# listed in the critic prompt (per type). The vault holds thousands of them, so
+# only the ones most relevant to the paper are shown.
+MAX_PROMPT_ENTITIES = 150
+
+
+def _existing_entities_str(entity_type: str, context: str | None, empty: str) -> str:
+    names = get_existing_entities(entity_type)
+    if context is not None:
+        names = select_relevant(names, context, MAX_PROMPT_ENTITIES)
+    return ", ".join(names) if names else empty
+
+
+def _build_system_prompt(skill: SkillSpec, context: str | None = None) -> str:
+    existing_concepts_str = _existing_entities_str(
+        "concepts", context, "(No concepts currently exist in the vault)"
+    )
+    existing_open_questions_str = _existing_entities_str(
+        "open_questions", context, "(No open questions currently exist in the vault)"
+    )
+    existing_datasets_str = _existing_entities_str(
+        "datasets", context, "(No datasets currently exist in the vault)"
+    )
 
     prompt = f"""You are a highly selective research archivist protecting a long-lived ML knowledge vault.
 
@@ -115,6 +131,16 @@ REVIEW POLICY:
     return prompt
 
 
+def _relevance_context(analysis: PaperAnalysis, paper: RawPaper) -> str:
+    """Text used to pick which existing vault entities the critic sees."""
+    candidates = [
+        *(f"{c.slug} {c.one_liner}" for c in analysis.concepts),
+        *(f"{q.slug} {q.description}" for q in analysis.open_questions),
+        *(f"{d.name} {d.description}" for d in analysis.datasets),
+    ]
+    return "\n".join([paper.title, paper.abstract, *candidates])
+
+
 def review_analysis(analysis: PaperAnalysis, paper: RawPaper, skill: SkillSpec) -> PaperAnalysis:
     """Review candidate concepts, open questions, and datasets before writing to the vault."""
     if not analysis.concepts and not analysis.open_questions and not analysis.datasets:
@@ -124,7 +150,7 @@ def review_analysis(analysis: PaperAnalysis, paper: RawPaper, skill: SkillSpec) 
     agent: Agent[None, CriticReview] = Agent(
         model=settings.llm_model,
         output_type=CriticReview,
-        system_prompt=_build_system_prompt(skill),
+        system_prompt=_build_system_prompt(skill, _relevance_context(analysis, paper)),
     )
 
     payload = {
