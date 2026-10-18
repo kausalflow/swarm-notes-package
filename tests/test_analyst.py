@@ -20,6 +20,8 @@ class MockOutput(BaseModel):
     domain: str = "nlp"
     authors: list[str] = []
     concepts: list[str] = []
+    tags: list[str] = []
+    source: str = ""
 
 
 @patch("swarm_notes.analyst.Agent")
@@ -64,3 +66,19 @@ def test_analyse(mock_load_taxonomy: MagicMock, mock_agent_class: MagicMock) -> 
     assert result.url == "http://url"
     assert result.published == "2023-01-01"
     assert result.authors == ["Author Name"]
+
+
+def test_normalise_tags_reuses_existing_spelling() -> None:
+    from swarm_notes.analyst import _normalise_tags
+
+    assert _normalise_tags(
+        ["forecasting", "Forecasting", " New Tag ", ""], ["Forecasting", "LLM"]
+    ) == ["Forecasting", "New Tag"]
+
+
+def test_output_schema_has_no_tag_enum() -> None:
+    """Existing tags must not become a schema enum (Gemini rejects large enums)."""
+    from swarm_notes.analyst import PaperAnalysis
+
+    tags_schema = PaperAnalysis.model_json_schema()["properties"]["tags"]
+    assert tags_schema["items"] == {"type": "string"}

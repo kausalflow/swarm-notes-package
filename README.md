@@ -219,3 +219,11 @@ swarm-notes run \
 ## License
 
 MIT — see [LICENSE](LICENSE).
+## Releasing
+
+Releases are published to PyPI by `.github/workflows/release.yml` when a `v*` tag is pushed:
+
+1. Bump `version` in `pyproject.toml` and merge to `main`.
+2. Tag the merge commit with the same version, e.g. `git tag v0.3.4 && git push origin v0.3.4`.
+
+The workflow checks that the tag matches `pyproject.toml`, runs the tests, builds, and publishes with PyPI trusted publishing. One-time setup: add this repository as a trusted publisher for `swarm-notes` on PyPI (workflow `release.yml`, environment `pypi`).

@@ -254,3 +254,11 @@ def test_compact_daily_notes_archives_old_and_excludes_from_default_overview(tmp
     assert count_with_archive == 2
     content_with_archive = overview_path.read_text(encoding="utf-8")
     assert f"- [{old_date}](/astro-notes/archive/daily/{old_date[0:4]}/{old_date[5:7]}/{old_date}) *(archived)*" in content_with_archive
+
+def test_yaml_escape_produces_valid_double_quoted_yaml() -> None:
+    import yaml
+    from swarm_notes.vault_writer import _yaml_escape
+
+    title = 'POEM: Phase-Aware $\\mathrm{SO}(2)$ "Rotation"\nDrift'
+    parsed = yaml.safe_load(f'title: "{_yaml_escape(title)}"')
+    assert parsed["title"] == 'POEM: Phase-Aware $\\mathrm{SO}(2)$ "Rotation" Drift'
